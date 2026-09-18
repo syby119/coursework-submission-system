@@ -45,12 +45,23 @@ export async function replaceSubmission(input: {
          storage_path = excluded.storage_path,
          original_filename = excluded.original_filename,
          file_size = excluded.file_size,
+         score = null,
          submitted_at = now()
        returning *`,
       [input.assignmentId, input.studentId, input.storagePath, input.originalFilename, input.fileSize],
     );
     return { submission: rows[0], previousPath: current[0]?.storage_path ?? null };
   });
+}
+
+export async function updateSubmissionScore(assignmentId: string, submissionId: string, score: string) {
+  const { rows } = await query<Submission>(
+    `update submissions set score = $1
+     where id = $2 and assignment_id = $3
+     returning *`,
+    [score, submissionId, assignmentId],
+  );
+  return rows[0] ?? null;
 }
 
 export async function findSubmissionForDownload(id: string) {

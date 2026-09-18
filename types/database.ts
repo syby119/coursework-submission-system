@@ -27,6 +27,7 @@ export type Submission = {
   storage_path: string;
   original_filename: string;
   file_size: number;
+  score: string | null;
   submitted_at: string;
   updated_at: string;
 };

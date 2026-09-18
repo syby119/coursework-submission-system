@@ -9,6 +9,7 @@ import {
   findAssignmentByTitle,
   updateAssignment,
 } from "@/lib/db/assignments";
+import { updateSubmissionScore } from "@/lib/db/submissions";
 import { parseShanghaiDateTime } from "@/lib/time";
 import { removeStoredFile } from "@/lib/storage/local";
 
@@ -114,4 +115,18 @@ export async function deleteAssignmentAction(assignmentId: string) {
   revalidatePath("/");
   revalidatePath("/admin");
   redirectWithMessage("/admin", "success", "作业已删除。");
+}
+
+export async function updateSubmissionScoreAction(assignmentId: string, submissionId: string, formData: FormData) {
+  await requireAdmin();
+  const basePath = `/admin/assignments/${assignmentId}`;
+  const score = String(formData.get("score") ?? "").trim();
+  if (!/^(?:0|[1-9]\d{0,5})(?:\.\d{1,2})?$/.test(score)) {
+    redirectWithMessage(basePath, "error", "分数必须是 0 到 999999.99 之间、最多保留两位小数的数字。 ");
+  }
+
+  const submission = await updateSubmissionScore(assignmentId, submissionId, score);
+  if (!submission) redirectWithMessage(basePath, "error", "未找到对应的学生提交。 ");
+  revalidatePath(basePath);
+  redirectWithMessage(basePath, "success", "分数已保存。");
 }
