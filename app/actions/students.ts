@@ -59,11 +59,11 @@ export async function createStudentAction(errorPath: string, successPath: string
   await requireAdmin();
   const parsed = studentValues(formData, locale);
   if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? t(locale, "studentAddFailed"));
+  if (await findUserByStudentNumber(parsed.values.studentNumber)) {
+    redirectWithMessage(errorPath, "error", t(locale, "studentNumberDuplicate", { studentNumber: parsed.values.studentNumber }));
+  }
 
   try {
-    if (await findUserByStudentNumber(parsed.values.studentNumber)) {
-      redirectWithMessage(errorPath, "error", t(locale, "studentNumberDuplicate", { studentNumber: parsed.values.studentNumber }));
-    }
     await createStudent({ ...parsed.values, passwordHash: await hashPassword(INITIAL_STUDENT_PASSWORD) });
   } catch (error) {
     console.error("Student creation failed", error);
@@ -98,18 +98,19 @@ export async function importStudentsAction(errorPath: string, successPath: strin
     redirectWithMessage(errorPath, "error", t(locale, "studentImportUnreadableFile"));
   }
 
+  let result;
   try {
     const passwordHashes = await Promise.all(students.map(() => hashPassword(INITIAL_STUDENT_PASSWORD)));
-    const result = await createStudents(students.map((student, index) => ({ ...student, passwordHash: passwordHashes[index] })));
-    if (result.existingStudentNumbers.length) {
-      redirectWithMessage(errorPath, "error", t(locale, "studentImportExisting", { studentNumbers: result.existingStudentNumbers.join(", ") }));
-    }
+    result = await createStudents(students.map((student, index) => ({ ...student, passwordHash: passwordHashes[index] })));
   } catch (error) {
     console.error("Student Excel import failed", error);
     if (isDuplicateStudentNumberError(error)) {
       redirectWithMessage(errorPath, "error", t(locale, "studentImportDuplicateDatabase"));
     }
     redirectWithMessage(errorPath, "error", t(locale, "studentImportFailed"));
+  }
+  if (result.existingStudentNumbers.length) {
+    redirectWithMessage(errorPath, "error", t(locale, "studentImportExisting", { studentNumbers: result.existingStudentNumbers.join(", ") }));
   }
 
   revalidatePath("/admin/students");
