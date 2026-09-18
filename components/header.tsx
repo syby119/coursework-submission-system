@@ -12,6 +12,11 @@ export function Header({ profile }: { profile: AuthenticatedUser }) {
         </Link>
         <div className="flex items-center gap-3 text-sm">
           <span className="hidden text-slate-600 sm:inline">{profile.name}</span>
+          {profile.role === "student" ? (
+            <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/account/password">
+              修改密码
+            </Link>
+          ) : null}
           {profile.role === "admin" ? (
             <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin">
               管理后台

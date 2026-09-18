@@ -86,7 +86,19 @@ student_number,name,password
 pnpm students:import -- students.csv
 ```
 
-CSV 导入会在单一数据库 transaction 中执行；学号重复、字段不完整或密码少于 12 个字符时会整体失败。
+CSV 导入会在单一数据库 transaction 中执行；学号重复或字段不完整时会整体失败。
+
+若教务名单为 Excel，首个工作表的前两列必须依次为 `姓名`、`学号`（其余列会忽略）。初始密码以标准输入传入，不会出现在命令历史中：
+
+```bash
+read -rs -p '学生初始密码: ' INITIAL_PASSWORD; echo
+printf '%s' "$INITIAL_PASSWORD" | pnpm students:import-xlsx -- student_list.xlsx --password-stdin
+unset INITIAL_PASSWORD
+```
+
+Excel 中存在重复学号、空姓名/学号，或数据库已经存在其中任一学号时，导入会整体失败，不会创建部分账号。`student_list.xlsx` 默认被 Git 忽略，避免提交学生个人信息。
+
+学生登录后可通过页头的“修改密码”更新密码。修改需要验证当前密码并二次确认；成功后当前浏览器会获得新会话，其他设备上的旧会话会全部失效。
 
 ## WSL production-like 部署
 

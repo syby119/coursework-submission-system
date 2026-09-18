@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# locally supplied student roster; it contains personal information
+/student_list.xlsx
+
 # vercel
 .vercel
 

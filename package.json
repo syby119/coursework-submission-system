@@ -11,7 +11,8 @@
     "test": "vitest run",
     "db:migrate": "node scripts/migrate.mjs",
     "admin:create": "node scripts/admin-create.mjs",
-    "students:import": "node scripts/students-import.mjs"
+    "students:import": "node scripts/students-import.mjs",
+    "students:import-xlsx": "node scripts/students-import-xlsx.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

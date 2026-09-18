@@ -29,7 +29,7 @@ function parseCsvLine(line) {
 }
 
 async function importStudents() {
-  const filename = process.argv[2];
+  const filename = process.argv.slice(2).find((argument) => argument !== "--");
   if (!filename) throw new Error("Usage: pnpm students:import -- students.csv");
   const lines = (await readFile(filename, "utf8")).replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
   const header = parseCsvLine(lines.shift() ?? "");
@@ -38,8 +38,8 @@ async function importStudents() {
   }
   const records = lines.map((line, index) => {
     const [studentNumber, name, password, ...extra] = parseCsvLine(line);
-    if (extra.length || !studentNumber || !name || !password || password.length < 12) {
-      throw new Error(`Invalid row ${index + 2}; a 12+ character password is required.`);
+    if (extra.length || !studentNumber || !name || !password) {
+      throw new Error(`Invalid row ${index + 2}; student number, name, and password are required.`);
     }
     return { studentNumber, name, password };
   });

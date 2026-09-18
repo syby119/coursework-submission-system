@@ -12,6 +12,14 @@ export async function findUserByStudentNumber(studentNumber: string) {
   return rows[0] ?? null;
 }
 
+export async function findUserWithPasswordById(userId: string) {
+  const { rows } = await query<UserWithPassword>(
+    "select id, student_number, name, role, password_hash, created_at, updated_at from users where id = $1",
+    [userId],
+  );
+  return rows[0] ?? null;
+}
+
 export async function findSessionUser(tokenHash: string) {
   const { rows } = await query<CurrentUser>(
     `select u.id, u.student_number, u.name, u.role

@@ -17,7 +17,7 @@ async function readPassword() {
   let password = "";
   for await (const chunk of input) password += chunk;
   password = password.trimEnd();
-  if (password.length < 12) throw new Error("Password must contain at least 12 characters.");
+  if (!password) throw new Error("Password must not be empty.");
   return password;
 }
 
