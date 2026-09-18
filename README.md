@@ -87,6 +87,29 @@ CSV 导入会在单一数据库 transaction 中执行；学号重复、字段不
 
 以下步骤在 WSL Ubuntu 中执行，需要 sudo。不要使用 `pnpm dev` 作为验收方式。
 
+### 0. 可选：启用 WSL systemd
+
+先检查 WSL 是否已启用 systemd：
+
+```bash
+ps -p 1 -o comm=
+```
+
+若输出不是 `systemd`，编辑 `/etc/wsl.conf`：
+
+```bash
+sudo editor /etc/wsl.conf
+```
+
+加入：
+
+```ini
+[boot]
+systemd=true
+```
+
+`editor` 会调用当前 Ubuntu 系统配置的默认文本编辑器；可用 `sudo update-alternatives --config editor` 选择它。保存后，在 **Windows PowerShell**（而不是 WSL shell）执行 `wsl --shutdown`，再重新打开 WSL。若暂时不启用 systemd，后续把 `systemctl` 启动/reload 命令改为 `sudo service <服务名> start` 或 `sudo service <服务名> reload` 即可。
+
 ### 1. 安装系统软件
 
 ```bash
@@ -139,11 +162,12 @@ curl -I http://127.0.0.1:3000/login
 ```bash
 sudo cp deploy/nginx/homework-system.conf /etc/nginx/sites-available/homework-system
 sudo ln -s /etc/nginx/sites-available/homework-system /etc/nginx/sites-enabled/homework-system
+test -L /etc/nginx/sites-enabled/default && sudo unlink /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
+`unlink` 仅移除 Ubuntu 默认站点的启用链接；仅当这个 WSL 实例没有其他网站时才执行。未启用 systemd 时，最后一条命令使用 `sudo service nginx reload`。现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
 
 ## 实验室 Ubuntu 服务器部署
 
