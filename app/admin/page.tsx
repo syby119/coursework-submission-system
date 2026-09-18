@@ -14,9 +14,14 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-7">
-        <p className="text-sm font-medium text-indigo-700">管理员后台</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">作业管理</h1>
+      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-indigo-700">管理员后台</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">作业管理</h1>
+        </div>
+        <a href="/api/admin/export" className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+          一键导出全部作业和成绩（ZIP）
+        </a>
       </div>
       {messages.error ? <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
       {messages.success ? <p className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{messages.success}</p> : null}

@@ -1,7 +1,7 @@
 import ExcelJS from "exceljs";
 import { describe, expect, it } from "vitest";
-import { createGradeWorkbook } from "../lib/export/grades";
-import type { Submission, User } from "../types/database";
+import { createGradeSummaryWorkbook, createGradeWorkbook } from "../lib/export/grades";
+import type { Assignment, Submission, User } from "../types/database";
 
 const students: User[] = [
   { id: "student-1", student_number: "20260001", name: "学生甲", role: "student", created_at: "", updated_at: "" },
@@ -22,6 +22,11 @@ const submissions: Submission[] = [
   },
 ];
 
+const assignments: Assignment[] = [
+  { id: "assignment-1", title: "作业一", description: "", published_at: "", deadline: "", created_at: "", updated_at: "", created_by: "admin" },
+  { id: "assignment-2", title: "作业二", description: "", published_at: "", deadline: "", created_at: "", updated_at: "", created_by: "admin" },
+];
+
 describe("grade workbook", () => {
   it("includes every student and exports ungraded scores as zero", async () => {
     const buffer = await createGradeWorkbook(students, submissions);
@@ -33,5 +38,18 @@ describe("grade workbook", () => {
     expect(sheet?.getCell("E2").value).toBe(88.5);
     expect(sheet?.getCell("A3").value).toBe("20260002");
     expect(sheet?.getCell("E3").value).toBe(0);
+  });
+
+  it("summarizes every assignment score per student", async () => {
+    const buffer = await createGradeSummaryWorkbook(assignments, students, submissions);
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(buffer);
+    const sheet = workbook.getWorksheet("成绩汇总");
+
+    expect(sheet?.getCell("C1").value).toBe("作业一");
+    expect(sheet?.getCell("D1").value).toBe("作业二");
+    expect(sheet?.getCell("C2").value).toBe(88.5);
+    expect(sheet?.getCell("D2").value).toBe(0);
+    expect(sheet?.getCell("E2").value).toBe(88.5);
   });
 });

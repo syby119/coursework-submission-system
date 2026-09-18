@@ -3,6 +3,8 @@ import {
   assignmentArchiveDirectory,
   assignmentArchiveFilename,
   assignmentGradeFilename,
+  allAssignmentsArchiveDirectory,
+  allAssignmentsArchiveFilename,
   studentArchiveDirectory,
 } from "../lib/archive/paths";
 
@@ -11,6 +13,8 @@ describe("archive entry names", () => {
     expect(assignmentArchiveFilename("作业 3")).toBe("作业 3.zip");
     expect(assignmentArchiveDirectory("作业 3")).toBe("作业 3");
     expect(assignmentGradeFilename("作业 3")).toBe("作业 3-成绩.xlsx");
+    expect(allAssignmentsArchiveDirectory).toBe("全部作业和成绩");
+    expect(allAssignmentsArchiveFilename).toBe("全部作业和成绩.zip");
     expect(studentArchiveDirectory("test001", "张三")).toBe("test001_张三");
   });
 

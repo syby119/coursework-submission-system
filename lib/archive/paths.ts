@@ -25,6 +25,9 @@ export function assignmentGradeFilename(title: string) {
   return `${assignmentArchiveDirectory(title)}-成绩.xlsx`;
 }
 
+export const allAssignmentsArchiveDirectory = "全部作业和成绩";
+export const allAssignmentsArchiveFilename = `${allAssignmentsArchiveDirectory}.zip`;
+
 export function assignmentArchiveDirectory(title: string) {
   return archivePathSegment(title, "作业");
 }
