@@ -30,6 +30,10 @@ function isDuplicateTitleError(error: unknown) {
     && error.constraint === "assignments_title_unique";
 }
 
+function duplicateTitleMessage(title: string, action: "创建" | "保存") {
+  return `${action}失败：作业标题“${title}”已存在。请修改标题后重试。`;
+}
+
 function assignmentValues(formData: FormData) {
   const title = textField(formData, "title", 200);
   const description = textField(formData, "description", 10000);
@@ -50,7 +54,7 @@ export async function createAssignmentAction(formData: FormData) {
   const parsed = assignmentValues(formData);
   if ("error" in parsed) redirectWithMessage("/admin", "error", parsed.error ?? "作业信息无效。");
   if (await findAssignmentByTitle(parsed.values.title)) {
-    redirectWithMessage("/admin", "error", "该标题的作业已存在，创建失败。");
+    redirectWithMessage("/admin", "error", duplicateTitleMessage(parsed.values.title, "创建"));
   }
 
   try {
@@ -58,7 +62,7 @@ export async function createAssignmentAction(formData: FormData) {
   } catch (error) {
     console.error("Assignment creation failed", error);
     if (isDuplicateTitleError(error)) {
-      redirectWithMessage("/admin", "error", "该标题的作业已存在，创建失败。");
+      redirectWithMessage("/admin", "error", duplicateTitleMessage(parsed.values.title, "创建"));
     }
     redirectWithMessage("/admin", "error", "作业创建失败，请稍后重试。");
   }
@@ -78,6 +82,9 @@ export async function updateAssignmentAction(assignmentId: string, formData: For
     assignment = await updateAssignment(assignmentId, parsed.values);
   } catch (error) {
     console.error("Assignment update failed", error);
+    if (isDuplicateTitleError(error)) {
+      redirectWithMessage(basePath, "error", duplicateTitleMessage(parsed.values.title, "保存"));
+    }
     redirectWithMessage(basePath, "error", "作业更新失败，请稍后重试。");
   }
   if (!assignment) redirectWithMessage(basePath, "error", "作业不存在。");
