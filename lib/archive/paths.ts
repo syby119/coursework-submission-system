@@ -18,7 +18,11 @@ export function archivePathSegment(value: string, fallback: string) {
 }
 
 export function assignmentArchiveFilename(title: string) {
-  return `${archivePathSegment(title, "作业")}.zip`;
+  return `${assignmentArchiveDirectory(title)}.zip`;
+}
+
+export function assignmentArchiveDirectory(title: string) {
+  return archivePathSegment(title, "作业");
 }
 
 export function studentArchiveDirectory(studentNumber: string, studentName: string) {

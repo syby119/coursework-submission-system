@@ -3,6 +3,7 @@ import { Readable } from "node:stream";
 import { ZipFile } from "yazl";
 import { NextResponse } from "next/server";
 import {
+  assignmentArchiveDirectory,
   assignmentArchiveFilename,
   studentArchiveDirectory,
   submissionArchiveFilename,
@@ -62,13 +63,17 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       console.error("Assignment archive stream failed", error);
     });
 
+    const rootDirectory = assignmentArchiveDirectory(assignment.title);
+    zip.addEmptyDirectory(rootDirectory);
+
     for (const student of students) {
       const directory = studentArchiveDirectory(student.student_number, student.name);
-      zip.addEmptyDirectory(directory);
+      const archiveDirectory = `${rootDirectory}/${directory}`;
+      zip.addEmptyDirectory(archiveDirectory);
 
       const submission = filesByStudent.get(student.id);
       if (submission) {
-        zip.addFile(submission.absolutePath, `${directory}/${submission.filename}`);
+        zip.addFile(submission.absolutePath, `${archiveDirectory}/${submission.filename}`);
       }
     }
 
