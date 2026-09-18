@@ -11,11 +11,11 @@ export async function loginAction(_: LoginState, formData: FormData): Promise<Lo
   const studentNumber = String(formData.get("student_number") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!studentNumber || !password) return { error: "请输入学号和密码。" };
+  if (!studentNumber || !password) return { error: "请输入用户名和密码。" };
 
   const user = await findUserByStudentNumber(studentNumber);
   if (!user || !(await verifyPassword(password, user.password_hash))) {
-    return { error: "学号或密码不正确。" };
+    return { error: "用户名或密码不正确。" };
   }
   await createSession(user.id);
   redirect(user.role === "admin" ? "/admin" : "/");

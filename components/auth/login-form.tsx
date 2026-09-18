@@ -11,7 +11,7 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-5">
       <label className="block text-sm font-medium text-slate-700">
-        学号
+        用户名
         <input
           className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 transition focus:ring-2"
           name="student_number"
