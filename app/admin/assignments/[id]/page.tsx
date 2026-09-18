@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AssignmentForm } from "@/components/admin/assignment-form";
-import { AdminSubmissionTable } from "@/components/admin/submission-table";
+import { AssignmentOverview } from "@/components/admin/assignment-overview";
+import { AssignmentSubmissionManagement } from "@/components/admin/assignment-submission-management";
+import { EditAssignmentDialog } from "@/components/admin/edit-assignment-dialog";
 import { requireAdmin } from "@/lib/auth/guards";
 import { findAssignment } from "@/lib/db/assignments";
 import { listAssignmentSubmissions, listStudents } from "@/lib/db/submissions";
 
 type AdminAssignmentPageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; success?: string }>;
+  searchParams: Promise<{ tab?: string; edit?: string; error?: string; success?: string }>;
 };
 
 export default async function AdminAssignmentPage({ params, searchParams }: AdminAssignmentPageProps) {
@@ -21,40 +22,39 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
     listAssignmentSubmissions(id),
   ]);
   if (!assignment) notFound();
-  const total = students.length;
-  const submitted = submissions.length;
+  const tab = messages.tab === "submissions" ? "submissions" : "detail";
+  const basePath = `/admin/assignments/${assignment.id}`;
+  const detailHref = `${basePath}?tab=detail`;
+  const submissionsHref = `${basePath}?tab=submissions`;
+  const editHref = `${detailHref}&edit=1`;
+  const editOpen = tab === "detail" && messages.edit === "1";
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <Link href="/admin" className="text-sm font-medium text-indigo-700 hover:text-indigo-900">← 返回作业管理</Link>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">{assignment.title}</h1>
-      {messages.error ? <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold tracking-tight text-slate-900">{assignment.title}</h1>
+        <Link href={editHref} className="shrink-0 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">编辑</Link>
+      </div>
+      <nav className="mt-6 flex border-b border-slate-200" aria-label="作业页面导航">
+        <Link
+          href={detailHref}
+          className={`-mb-px border-b-2 px-4 py-3 text-sm font-medium ${tab === "detail" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900"}`}
+        >
+          作业详情
+        </Link>
+        <Link
+          href={submissionsHref}
+          className={`-mb-px border-b-2 px-4 py-3 text-sm font-medium ${tab === "submissions" ? "border-indigo-600 text-indigo-700" : "border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900"}`}
+        >
+          提交情况
+        </Link>
+      </nav>
       {messages.success ? <p className="mt-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{messages.success}</p> : null}
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">编辑作业</h2>
-        <div className="mt-5"><AssignmentForm assignment={assignment} /></div>
-      </section>
-      <section className="mt-7">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div><h2 className="text-lg font-semibold text-slate-900">提交情况</h2><p className="mt-1 text-sm text-slate-600">以全部学生账号为名单基准。</p></div>
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <a
-              href={`/api/admin/assignments/${assignment.id}/export`}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-            >
-              导出全部作业（ZIP）
-            </a>
-            <a
-              href={`/api/admin/assignments/${assignment.id}/grades`}
-              className="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
-            >
-              导出成绩（Excel）
-            </a>
-            <div className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</div>
-          </div>
-        </div>
-        <div className="mt-4"><AdminSubmissionTable students={students} submissions={submissions} deadline={assignment.deadline} /></div>
-      </section>
+      {messages.error && !editOpen ? <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
+      {tab === "detail" ? <AssignmentOverview assignment={assignment} /> : null}
+      {tab === "submissions" ? <AssignmentSubmissionManagement assignment={assignment} students={students} submissions={submissions} /> : null}
+      {editOpen ? <EditAssignmentDialog assignment={assignment} closeHref={detailHref} error={messages.error} /> : null}
     </main>
   );
 }

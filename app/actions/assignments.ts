@@ -19,7 +19,10 @@ function textField(formData: FormData, field: string, maxLength: number) {
 }
 
 function redirectWithMessage(path: string, key: "error" | "success", message: string): never {
-  redirect(`${path}?${key}=${encodeURIComponent(message)}`);
+  const [pathname, search = ""] = path.split("?", 2);
+  const searchParams = new URLSearchParams(search);
+  searchParams.set(key, message);
+  redirect(`${pathname}?${searchParams.toString()}`);
 }
 
 function isDuplicateTitleError(error: unknown) {
@@ -72,11 +75,15 @@ export async function createAssignmentAction(formData: FormData) {
   redirectWithMessage("/admin", "success", "作业已创建。");
 }
 
-export async function updateAssignmentAction(assignmentId: string, formData: FormData) {
+export async function updateAssignmentAction(
+  assignmentId: string,
+  errorPath: string,
+  successPath: string,
+  formData: FormData,
+) {
   await requireAdmin();
   const parsed = assignmentValues(formData);
-  const basePath = `/admin/assignments/${assignmentId}`;
-  if ("error" in parsed) redirectWithMessage(basePath, "error", parsed.error ?? "作业信息无效。");
+  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? "作业信息无效。");
 
   let assignment;
   try {
@@ -84,16 +91,16 @@ export async function updateAssignmentAction(assignmentId: string, formData: For
   } catch (error) {
     console.error("Assignment update failed", error);
     if (isDuplicateTitleError(error)) {
-      redirectWithMessage(basePath, "error", duplicateTitleMessage(parsed.values.title, "保存"));
+      redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "保存"));
     }
-    redirectWithMessage(basePath, "error", "作业更新失败，请稍后重试。");
+    redirectWithMessage(errorPath, "error", "作业更新失败，请稍后重试。");
   }
-  if (!assignment) redirectWithMessage(basePath, "error", "作业不存在。");
+  if (!assignment) redirectWithMessage(errorPath, "error", "作业不存在。");
   revalidatePath("/");
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/admin");
-  revalidatePath(basePath);
-  redirectWithMessage(basePath, "success", "作业已更新。");
+  revalidatePath(`/admin/assignments/${assignmentId}`);
+  redirectWithMessage(successPath, "success", "作业已更新。");
 }
 
 export async function deleteAssignmentAction(assignmentId: string) {
@@ -119,7 +126,8 @@ export async function deleteAssignmentAction(assignmentId: string) {
 
 export async function updateSubmissionScoreAction(assignmentId: string, submissionId: string, formData: FormData) {
   await requireAdmin();
-  const basePath = `/admin/assignments/${assignmentId}`;
+  const pagePath = `/admin/assignments/${assignmentId}`;
+  const basePath = `${pagePath}?tab=submissions`;
   const score = String(formData.get("score") ?? "").trim();
   if (!/^(?:0|[1-9]\d{0,5})(?:\.\d{1,2})?$/.test(score)) {
     redirectWithMessage(basePath, "error", "分数必须是 0 到 999999.99 之间、最多保留两位小数的数字。 ");
@@ -127,6 +135,6 @@ export async function updateSubmissionScoreAction(assignmentId: string, submissi
 
   const submission = await updateSubmissionScore(assignmentId, submissionId, score);
   if (!submission) redirectWithMessage(basePath, "error", "未找到对应的学生提交。 ");
-  revalidatePath(basePath);
+  revalidatePath(pagePath);
   redirectWithMessage(basePath, "success", "分数已保存。");
 }

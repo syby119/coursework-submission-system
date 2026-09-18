@@ -1,9 +1,20 @@
+import Link from "next/link";
 import { createAssignmentAction, updateAssignmentAction } from "@/app/actions/assignments";
 import { formatDateTimeLocal } from "@/lib/time";
 import type { Assignment } from "@/types/database";
 
-export function AssignmentForm({ assignment }: { assignment?: Assignment }) {
-  const action = assignment ? updateAssignmentAction.bind(null, assignment.id) : createAssignmentAction;
+type AssignmentFormProps = {
+  assignment?: Assignment;
+  cancelHref?: string;
+  errorPath?: string;
+  successPath?: string;
+};
+
+export function AssignmentForm({ assignment, cancelHref, errorPath, successPath }: AssignmentFormProps) {
+  const defaultPath = assignment ? `/admin/assignments/${assignment.id}` : "/admin";
+  const action = assignment
+    ? updateAssignmentAction.bind(null, assignment.id, errorPath ?? defaultPath, successPath ?? defaultPath)
+    : createAssignmentAction;
   const defaultPublished = assignment ? formatDateTimeLocal(assignment.published_at) : formatDateTimeLocal(new Date().toISOString());
   const defaultDeadline = assignment
     ? formatDateTimeLocal(assignment.deadline)
@@ -29,9 +40,12 @@ export function AssignmentForm({ assignment }: { assignment?: Assignment }) {
           <input name="deadline" type="datetime-local" defaultValue={defaultDeadline} required className="rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 focus:ring-2" />
         </label>
       </div>
-      <button className="w-fit rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-        {assignment ? "保存修改" : "创建作业"}
-      </button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button className="w-fit rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+          {assignment ? "保存修改" : "创建作业"}
+        </button>
+        {cancelHref ? <Link href={cancelHref} className="text-sm font-medium text-slate-600 hover:text-slate-900">取消</Link> : null}
+      </div>
     </form>
   );
 }
