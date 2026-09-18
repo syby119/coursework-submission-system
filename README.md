@@ -162,12 +162,21 @@ curl -I http://127.0.0.1:3000/login
 ```bash
 sudo cp deploy/nginx/homework-system.conf /etc/nginx/sites-available/homework-system
 sudo ln -s /etc/nginx/sites-available/homework-system /etc/nginx/sites-enabled/homework-system
-test -L /etc/nginx/sites-enabled/default && sudo unlink /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-`unlink` 仅移除 Ubuntu 默认站点的启用链接；仅当这个 WSL 实例没有其他网站时才执行。未启用 systemd 时，最后一条命令使用 `sudo service nginx reload`。现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
+模板的 `server_name localhost` 会让 `http://localhost` 命中本系统；不需要删除 Nginx 的 `default` 站点。未启用 systemd 时，最后一条命令使用 `sudo service nginx reload`。现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
+
+### 同一服务器部署多个网站
+
+每个网站都应有独立的 Nginx server block 和唯一的 `server_name`。实验室服务器复制模板后，编辑 `/etc/nginx/sites-available/homework-system`，将 `server_name localhost;` 改为学校分配的域名，例如：
+
+```nginx
+server_name homework.example.edu.cn;
+```
+
+同时把环境文件中的 `APP_URL` 设为完全相同的公网 origin（HTTPS 启用后为 `https://homework.example.edu.cn`），再重启应用。保留一个全局默认站点来处理没有匹配域名的请求即可；只有该站点使用 `default_server`。其他网站不应使用 `default_server`，也不应使用 `server_name _` 来接管所有域名。
 
 ## 实验室 Ubuntu 服务器部署
 
