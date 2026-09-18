@@ -9,7 +9,7 @@
 - 学生以用户名和密码登录；课程名单导入时，默认以学号作为用户名。
 - 学生查看已发布作业、截止时间和自己的状态；仅能上传 ZIP 文件，最大 50 MB，可重新提交。
 - 截止后仍允许提交，最新提交会标记为“补交”。学生只能下载自己的文件，且可自行修改密码。
-- 管理员创建、编辑、删除作业，查看全部学生的提交状态，记录分数，并下载学生文件。
+- 管理员创建、编辑、删除作业，管理课程学生名单，查看全部学生的提交状态，记录分数，并下载学生文件。
 - 管理员可分别导出单个作业的 ZIP、单个作业成绩 Excel，或导出全部作业及成绩汇总 ZIP。
 - ZIP 导出会将每位学生的上传包展开到 `作业名/学号_姓名/`；未提交学生也会保留空目录。
 - 页面支持中文与 English 切换；界面、反馈、时间格式和新导出的 Excel/归档名会随语言切换。作业标题、说明、姓名及原始文件名等用户数据保持原文。
@@ -93,27 +93,27 @@ openssl rand -base64 48
 
 ## 导入学生
 
-CSV 格式必须为 `student_number,name,password`：
+推荐在管理员导航中的**学生管理**页面完成操作：可查看名单、添加或删除单个学生，以及导入 Excel 名单。所有新添加学生的初始密码均为 `123456`。
+
+导入 Excel 时，首个工作表前两列必须依次为 `姓名`、`学号`；其他列会忽略。导入会在单个数据库 transaction 中完成：重复学号、空字段、无效文件或数据库已有学号都会让整批导入失败，不会只导入部分学生。
+
+服务器管理时仍可使用命令行导入工具，初始密码同样固定为 `123456`。CSV 格式必须为 `student_number,name`：
 
 ```csv
-student_number,name,password
-20260001,学生甲,initial-password
-20260002,学生乙,another-password
+student_number,name
+20260001,学生甲
+20260002,学生乙
 ```
 
 ```bash
 pnpm students:import -- students.csv
 ```
 
-也可导入 Excel：首个工作表前两列必须依次为 `姓名`、`学号`；其他列会忽略。初始密码从标准输入读取，不写入 shell history：
+命令行导入 Excel 使用相同的表格格式：
 
 ```bash
-read -rs -p '学生初始密码: ' INITIAL_PASSWORD; echo
-printf '%s' "$INITIAL_PASSWORD" | pnpm students:import-xlsx -- student_list.xlsx --password-stdin
-unset INITIAL_PASSWORD
+pnpm students:import-xlsx -- student_list.xlsx
 ```
-
-导入会在单个数据库 transaction 中完成。发现重复学号、空字段或数据库已有同名学号时，整个导入失败，不会只导入部分学生。
 
 ## WSL production-like 部署
 

@@ -10,7 +10,7 @@ A lightweight coursework submission system for one course and tens to hundreds o
 - Students see published assignments, deadlines, and their own submission status. ZIP files only, up to 50 MB, with resubmission supported.
 - Late and replacement submissions remain allowed and are marked as late; the latest submission is retained.
 - Students can download only their own files and can change their password themselves.
-- Administrators create, edit, and delete assignments; view the full roster; record scores; and download student work.
+- Administrators create, edit, and delete assignments; manage the course roster; record scores; and download student work.
 - Administrators can export one assignment's submissions as ZIP, one assignment's grades as Excel, or all assignments plus a grade summary as ZIP.
 - Exported ZIP files expand each submitted archive into `assignment-name/student-number_student-name/`. Students without a submission still receive an empty folder.
 - The interface supports Chinese and English. UI text, feedback, date formatting, and newly generated Excel/archive names follow the selected language. User data such as assignment titles, descriptions, names, and original filenames remains unchanged.
@@ -94,27 +94,27 @@ Open `http://localhost:3000/login`. The development server is for development on
 
 ## Import students
 
-A CSV file must use the `student_number,name,password` format:
+The recommended way is **Student management** in the administrator navigation. It lets an administrator view the roster, add or remove one student, or import an Excel roster. New students always receive the initial password `123456`.
+
+For Excel import, the first worksheet must begin with the Chinese headers `姓名` and `学号`, in that order; additional columns are ignored. The import is atomic: duplicate student numbers, empty fields, an invalid file, or an existing account cause the whole import to fail without a partial roster.
+
+The command-line import tools remain available for server administration and use the same initial password. A CSV file must use the `student_number,name` format:
 
 ```csv
-student_number,name,password
-20260001,Student A,initial-password
-20260002,Student B,another-password
+student_number,name
+20260001,Student A
+20260002,Student B
 ```
 
 ```bash
 pnpm students:import -- students.csv
 ```
 
-Excel import is also supported. The first worksheet must begin with the Chinese headers `姓名` and `学号`, in that order; additional columns are ignored. The initial password is read from standard input so it is not saved in shell history:
+Excel import from the command line uses the same file format:
 
 ```bash
-read -rs -p 'Initial student password: ' INITIAL_PASSWORD; echo
-printf '%s' "$INITIAL_PASSWORD" | pnpm students:import-xlsx -- student_list.xlsx --password-stdin
-unset INITIAL_PASSWORD
+pnpm students:import-xlsx -- student_list.xlsx
 ```
-
-Each import runs in one database transaction. Duplicate student numbers, empty fields, or an existing student number cause the entire import to fail without importing a partial roster.
 
 ## WSL production-like deployment
 

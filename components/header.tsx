@@ -23,9 +23,14 @@ export async function Header({ profile }: { profile: AuthenticatedUser }) {
             </Link>
           ) : null}
           {profile.role === "admin" ? (
-            <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin">
-              {t(locale, "adminManagement")}
-            </Link>
+            <>
+              <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin">
+                {t(locale, "assignmentManagement")}
+              </Link>
+              <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin/students">
+                {t(locale, "studentManagement")}
+              </Link>
+            </>
           ) : null}
           <form action={signOutAction}>
             <button className="rounded-md border border-slate-300 px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50">

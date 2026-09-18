@@ -1,22 +1,10 @@
-import { stdin as input } from "node:process";
 import bcrypt from "bcryptjs";
 import ExcelJS from "exceljs";
 import pg from "pg";
 import { requiredEnv } from "./env.mjs";
 
 const { Pool } = pg;
-
-async function readPassword() {
-  if (!process.argv.includes("--password-stdin")) {
-    throw new Error("Use --password-stdin and pipe a password instead of putting it in shell history.");
-  }
-
-  let password = "";
-  for await (const chunk of input) password += chunk;
-  password = password.trimEnd();
-  if (!password) throw new Error("Password must not be empty.");
-  return password;
-}
+const INITIAL_STUDENT_PASSWORD = "123456";
 
 function cellText(worksheet, rowNumber, columnNumber) {
   return String(worksheet.getRow(rowNumber).getCell(columnNumber).text).trim();
@@ -52,11 +40,11 @@ async function readStudents(filename) {
 }
 
 async function importStudents() {
-  const filename = process.argv.slice(2).find((argument) => argument !== "--" && argument !== "--password-stdin");
-  if (!filename) throw new Error("Usage: pnpm students:import-xlsx -- <students.xlsx> --password-stdin");
+  const filename = process.argv.slice(2).find((argument) => argument !== "--");
+  if (!filename) throw new Error("Usage: pnpm students:import-xlsx -- <students.xlsx>");
 
-  const [password, students] = await Promise.all([readPassword(), readStudents(filename)]);
-  const passwordHashes = await Promise.all(students.map(() => bcrypt.hash(password, 12)));
+  const students = await readStudents(filename);
+  const passwordHashes = await Promise.all(students.map(() => bcrypt.hash(INITIAL_STUDENT_PASSWORD, 12)));
   const pool = new Pool({ connectionString: requiredEnv("DATABASE_URL") });
   const client = await pool.connect();
 

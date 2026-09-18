@@ -4,6 +4,7 @@ import pg from "pg";
 import { requiredEnv } from "./env.mjs";
 
 const { Pool } = pg;
+const INITIAL_STUDENT_PASSWORD = "123456";
 
 function parseCsvLine(line) {
   const values = [];
@@ -33,15 +34,15 @@ async function importStudents() {
   if (!filename) throw new Error("Usage: pnpm students:import -- students.csv");
   const lines = (await readFile(filename, "utf8")).replace(/^\uFEFF/, "").split(/\r?\n/).filter(Boolean);
   const header = parseCsvLine(lines.shift() ?? "");
-  if (header.join(",") !== "student_number,name,password") {
-    throw new Error("CSV header must be: student_number,name,password");
+  if (header.join(",") !== "student_number,name") {
+    throw new Error("CSV header must be: student_number,name");
   }
   const records = lines.map((line, index) => {
-    const [studentNumber, name, password, ...extra] = parseCsvLine(line);
-    if (extra.length || !studentNumber || !name || !password) {
-      throw new Error(`Invalid row ${index + 2}; student number, name, and password are required.`);
+    const [studentNumber, name, ...extra] = parseCsvLine(line);
+    if (extra.length || !studentNumber || !name) {
+      throw new Error(`Invalid row ${index + 2}; student number and name are required.`);
     }
-    return { studentNumber, name, password };
+    return { studentNumber, name };
   });
   if (new Set(records.map((record) => record.studentNumber)).size !== records.length) {
     throw new Error("CSV contains duplicate student numbers.");
@@ -52,7 +53,7 @@ async function importStudents() {
   try {
     await client.query("begin");
     for (const record of records) {
-      const passwordHash = await bcrypt.hash(record.password, 12);
+      const passwordHash = await bcrypt.hash(INITIAL_STUDENT_PASSWORD, 12);
       await client.query(
         "insert into users (student_number, name, password_hash, role) values ($1, $2, $3, 'student')",
         [record.studentNumber, record.name, passwordHash],
