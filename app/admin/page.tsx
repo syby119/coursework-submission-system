@@ -2,16 +2,15 @@ import Link from "next/link";
 import { AssignmentForm } from "@/components/admin/assignment-form";
 import { deleteAssignmentAction } from "@/app/actions/assignments";
 import { requireAdmin } from "@/lib/auth/guards";
+import { listAllAssignments } from "@/lib/db/assignments";
 import { formatDateTime } from "@/lib/time";
-import { createClient } from "@/lib/supabase/server";
 
 type AdminPageProps = { searchParams: Promise<{ error?: string; success?: string }> };
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   await requireAdmin();
   const messages = await searchParams;
-  const supabase = await createClient();
-  const { data: assignments } = await supabase.from("assignments").select("*").order("deadline", { ascending: false });
+  const assignments = await listAllAssignments();
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
@@ -28,7 +27,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <section className="mt-7">
         <h2 className="text-lg font-semibold text-slate-900">全部作业</h2>
         <div className="mt-4 grid gap-3">
-          {(assignments ?? []).map((assignment) => (
+          {assignments.map((assignment) => (
             <article className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center" key={assignment.id}>
               <div>
                 <h3 className="font-semibold text-slate-900">{assignment.title}</h3>
@@ -42,7 +41,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
               </div>
             </article>
           ))}
-          {!assignments?.length ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">尚未创建作业。</p> : null}
+          {!assignments.length ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">尚未创建作业。</p> : null}
         </div>
       </section>
     </main>

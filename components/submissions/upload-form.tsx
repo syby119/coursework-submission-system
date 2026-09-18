@@ -1,15 +1,15 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { finalizeSubmissionAction, prepareSubmissionAction } from "@/app/actions/submissions";
-import { createClient } from "@/lib/supabase/client";
 import { MAX_FILE_SIZE, validateSubmissionFile } from "@/lib/validation/submission";
+import { useRouter } from "next/navigation";
 
 export function UploadForm({ assignmentId, disabled }: { assignmentId: string; disabled: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,41 +26,24 @@ export function UploadForm({ assignmentId, disabled }: { assignmentId: string; d
 
     startTransition(async () => {
       setError("");
-      setMessage("正在检查作业状态…");
-      const preparation = await prepareSubmissionAction(assignmentId, file.name, file.size);
-      if (!preparation.success) {
-        setMessage("");
-        setError(preparation.error);
-        return;
-      }
-
       setMessage("正在上传文件…");
-      const supabase = createClient();
-      const { error: uploadError } = await supabase.storage.from("submissions").upload(preparation.path, file, {
-        upsert: false,
-        contentType: file.type || undefined,
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch(`/api/assignments/${assignmentId}/submission`, {
+        method: "POST",
+        body: formData,
+        credentials: "same-origin",
       });
-      if (uploadError) {
+      const result = await response.json().catch(() => ({ error: "文件上传失败，请稍后重试。" })) as { error?: string };
+      if (!response.ok) {
         setMessage("");
-        setError("文件上传失败。请检查网络、文件类型和大小后重试。");
-        return;
-      }
-
-      setMessage("正在保存提交记录…");
-      const finalization = await finalizeSubmissionAction({
-        assignmentId,
-        path: preparation.path,
-        filename: file.name,
-        fileSize: file.size,
-      });
-      if (!finalization.success) {
-        setMessage("");
-        setError(finalization.error);
+        setError(result.error ?? "文件上传失败，请稍后重试。");
         return;
       }
       if (inputRef.current) inputRef.current.value = "";
       setError("");
       setMessage("提交成功，页面状态已更新。");
+      router.refresh();
     });
   }
 

@@ -1,36 +1,19 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/types/database";
+import { getCurrentUser } from "@/lib/auth/current-user";
+import type { CurrentUser } from "@/lib/db/users";
 
-export type AuthenticatedProfile = Pick<Profile, "id" | "name" | "role" | "student_number">;
-
-export async function getCurrentProfile(): Promise<AuthenticatedProfile | null> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, name, role, student_number")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return data;
-}
+export type AuthenticatedUser = CurrentUser;
 
 export async function requireStudent() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.role === "admin") redirect("/admin");
-  return profile;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role === "admin") redirect("/admin");
+  return user;
 }
 
 export async function requireAdmin() {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
-  if (profile.role !== "admin") redirect("/");
-  return profile;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  if (user.role !== "admin") redirect("/");
+  return user;
 }

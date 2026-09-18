@@ -2,6 +2,13 @@ export const MAX_FILE_SIZE = 50 * 1024 * 1024;
 export const ALLOWED_EXTENSIONS = ["pdf", "zip", "doc", "docx"] as const;
 type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number];
 
+const ALLOWED_MIME_TYPES: Record<AllowedExtension, readonly string[]> = {
+  pdf: ["application/pdf", "application/octet-stream"],
+  zip: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
+  doc: ["application/msword", "application/octet-stream"],
+  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/octet-stream"],
+};
+
 export type FileValidation =
   | { valid: true; extension: AllowedExtension; safeFilename: string }
   | { valid: false; error: string };
@@ -24,6 +31,14 @@ export function validateSubmissionFile(filename: string, size: number): FileVali
   }
 
   return { valid: true, extension: extension as AllowedExtension, safeFilename };
+}
+
+export function hasAllowedMimeType(extension: AllowedExtension, mimeType: string) {
+  return !mimeType || ALLOWED_MIME_TYPES[extension].includes(mimeType.toLowerCase());
+}
+
+export function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 export function isSubmissionPathForUser(path: string, assignmentId: string, userId: string) {

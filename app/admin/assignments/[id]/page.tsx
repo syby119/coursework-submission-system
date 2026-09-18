@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { AssignmentForm } from "@/components/admin/assignment-form";
 import { AdminSubmissionTable } from "@/components/admin/submission-table";
 import { requireAdmin } from "@/lib/auth/guards";
-import { createClient } from "@/lib/supabase/server";
+import { findAssignment } from "@/lib/db/assignments";
+import { listAssignmentSubmissions, listStudents } from "@/lib/db/submissions";
 
 type AdminAssignmentPageProps = {
   params: Promise<{ id: string }>;
@@ -14,15 +15,14 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
   const { id } = await params;
   const messages = await searchParams;
   await requireAdmin();
-  const supabase = await createClient();
-  const [{ data: assignment }, { data: students }, { data: submissions }] = await Promise.all([
-    supabase.from("assignments").select("*").eq("id", id).maybeSingle(),
-    supabase.from("profiles").select("*").eq("role", "student").order("student_number", { ascending: true }),
-    supabase.from("submissions").select("*").eq("assignment_id", id),
+  const [assignment, students, submissions] = await Promise.all([
+    findAssignment(id),
+    listStudents(),
+    listAssignmentSubmissions(id),
   ]);
   if (!assignment) notFound();
-  const total = students?.length ?? 0;
-  const submitted = submissions?.length ?? 0;
+  const total = students.length;
+  const submitted = submissions.length;
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
@@ -39,7 +39,7 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
           <div><h2 className="text-lg font-semibold text-slate-900">提交情况</h2><p className="mt-1 text-sm text-slate-600">以全部学生账号为名单基准。</p></div>
           <div className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</div>
         </div>
-        <div className="mt-4"><AdminSubmissionTable students={students ?? []} submissions={submissions ?? []} /></div>
+        <div className="mt-4"><AdminSubmissionTable students={students} submissions={submissions} /></div>
       </section>
     </main>
   );

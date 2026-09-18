@@ -3,21 +3,16 @@ import { notFound } from "next/navigation";
 import { DownloadButton } from "@/components/submissions/download-button";
 import { UploadForm } from "@/components/submissions/upload-form";
 import { requireStudent } from "@/lib/auth/guards";
+import { findPublishedAssignment } from "@/lib/db/assignments";
+import { findStudentSubmission } from "@/lib/db/submissions";
 import { formatDateTime, isPastDeadline } from "@/lib/time";
-import { createClient } from "@/lib/supabase/server";
 
 export default async function AssignmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const profile = await requireStudent();
-  const supabase = await createClient();
-  const { data: assignment } = await supabase.from("assignments").select("*").eq("id", id).maybeSingle();
+  const assignment = await findPublishedAssignment(id);
   if (!assignment) notFound();
-  const { data: submission } = await supabase
-    .from("submissions")
-    .select("*")
-    .eq("assignment_id", id)
-    .eq("student_id", profile.id)
-    .maybeSingle();
+  const submission = await findStudentSubmission(id, profile.id);
   const overdue = isPastDeadline(assignment.deadline);
 
   return (
@@ -38,7 +33,7 @@ export default async function AssignmentDetailPage({ params }: { params: Promise
           <div className="mt-3 rounded-lg bg-emerald-50 p-4 text-sm">
             <p className="font-medium text-emerald-800">已提交：{submission.original_filename}</p>
             <p className="mt-1 text-emerald-700">最后提交：{formatDateTime(submission.submitted_at)}</p>
-            <div className="mt-2"><DownloadButton path={submission.storage_path} /></div>
+            <div className="mt-2"><DownloadButton submissionId={submission.id} /></div>
           </div>
         ) : <p className="mt-3 text-sm text-slate-600">尚未提交。</p>}
         <div className="mt-6 border-t border-slate-200 pt-5">

@@ -1,71 +1,227 @@
 # 课程作业管理系统
 
-一个面向单一课程的轻量作业提交 MVP。学生可以查看和重复提交作业；管理员可以管理作业、查看提交/未提交名单并下载文件。访问控制由 Supabase Auth、PostgreSQL RLS 与私有 Storage policy 共同保证。
+面向单一课程的小型作业提交系统。它部署在一台普通 Linux 主机上：Next.js 负责页面、认证和业务逻辑，PostgreSQL 保存数据，私有本地目录保存学生文件，Nginx 负责反向代理。项目不依赖 Supabase、Vercel、Docker 或其他云服务。
 
-## 技术栈
+## 架构与安全边界
 
-- Next.js 16、TypeScript strict、React 19、App Router、Tailwind CSS
-- Supabase Auth（Email + Password）、PostgreSQL、Storage
-- pnpm、Vercel
+```text
+Browser → Nginx :80/:443 → Next.js :3000 (127.0.0.1)
+                                  ├─ PostgreSQL :5432 (127.0.0.1)
+                                  └─ UPLOAD_ROOT (私有本地目录)
+```
 
-首版采用单一课程模型：全部 `role = student` 的用户均计入学生名单。时间在 PostgreSQL 中以 UTC (`timestamptz`) 保存，界面始终以 `Asia/Shanghai` 显示。
+- 账号使用学号和 bcrypt password hash 登录。
+- 会话是 HttpOnly、SameSite=Lax 的随机 token cookie；数据库只保存带 `SESSION_SECRET` HMAC 的 token hash。
+- 浏览器不连接数据库，PostgreSQL 不应暴露公网；每个请求在服务器端重新读取 session 与 role。
+- 上传文件从不由 Nginx 静态暴露。下载必须通过受认证的应用 endpoint。
+- 上传采用流式 multipart 解析，最大 50 MB；只允许 PDF、ZIP、DOC、DOCX。
+- 时间以 PostgreSQL UTC `timestamptz` 存储，界面使用 `Asia/Shanghai` 显示。
 
-## 本地启动
+## 依赖
 
-需要 Node.js 22+、pnpm 及一个 Supabase 项目。
+- Ubuntu 24.04 或兼容 Linux
+- Node.js 22+、pnpm 11+
+- PostgreSQL 16+（Ubuntu 自带版本可用）
+- Nginx（生产或 WSL production-like 验证）
+
+## 环境变量
+
+复制模板。`.env`、`.env.local`、`.env.production` 都被 Git 忽略；服务器推荐使用 `/etc/homework-system/homework-system.env`。
 
 ```bash
-pnpm install
-cp .env.example .env.local
-pnpm dev
+cp .env.example .env
 ```
-
-在 `.env.local` 填入 Supabase 项目 Project Settings → API 中的值：
 
 ```dotenv
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NODE_ENV=production
+DATABASE_URL=postgresql://homework_user:password@127.0.0.1:5432/homework
+UPLOAD_ROOT=/data/homework-system/uploads
+BACKUP_ROOT=/data/homework-system/backups
+SESSION_SECRET=replace-with-a-random-secret-of-at-least-32-characters
+SESSION_TTL_DAYS=7
+APP_URL=http://localhost
+COOKIE_SECURE=false
+MAX_UPLOAD_SIZE=52428800
 ```
 
-这两个变量可用于浏览器；项目不使用 `SUPABASE_SERVICE_ROLE_KEY`。绝不能把 service-role key 放进 `NEXT_PUBLIC_*`、Git 或浏览器代码。
+生成 session secret：
 
-## 初始化 Supabase
+```bash
+openssl rand -base64 48
+```
 
-1. 在 Supabase 新建项目。
-2. 安装并登录 Supabase CLI，例如 `pnpm dlx supabase login`。
-3. 在仓库根目录执行：
+`APP_URL` 必须与浏览器实际访问的 origin 完全一致，用于上传 API 的 CSRF Origin 校验。WSL 通过 Nginx 用 HTTP 访问时设为 `http://localhost` 与 `COOKIE_SECURE=false`；实验室 HTTPS 正式域名应设为 `https://homework.example.edu.cn` 与 `COOKIE_SECURE=true`。`pnpm build` 明确使用 Next.js 的 Webpack build 模式，避免不同 Linux/WSL 环境的 Turbopack 进程限制差异。
+
+## 数据库与账号
+
+SQL migrations 位于 `migrations/`，通过 Git 版本控制。执行：
+
+```bash
+pnpm install --frozen-lockfile
+pnpm db:migrate
+```
+
+创建管理员时，避免将密码写进 shell history：
+
+```bash
+read -rs -p '管理员密码: ' PASSWORD; echo
+printf '%s' "$PASSWORD" | pnpm admin:create -- --student-number admin --name '课程管理员' --password-stdin
+unset PASSWORD
+```
+
+批量导入学生 CSV 必须包含安全的初始密码列：
+
+```csv
+student_number,name,password
+20260001,学生甲,a-long-initial-password
+20260002,学生乙,another-long-password
+```
+
+```bash
+pnpm students:import -- students.csv
+```
+
+CSV 导入会在单一数据库 transaction 中执行；学号重复、字段不完整或密码少于 12 个字符时会整体失败。
+
+## WSL production-like 部署
+
+以下步骤在 WSL Ubuntu 中执行，需要 sudo。不要使用 `pnpm dev` 作为验收方式。
+
+### 1. 安装系统软件
+
+```bash
+sudo apt update
+sudo apt install -y postgresql postgresql-contrib nginx
+sudo systemctl enable --now postgresql
+```
+
+如果 WSL 未启用 systemd，可先直接启动 PostgreSQL 服务；Nginx/systemd 的正式服务器步骤不受影响。
+
+### 2. 创建数据库
+
+```bash
+sudo -u postgres createuser --pwprompt homework_user
+sudo -u postgres createdb --owner=homework_user homework
+```
+
+确认 PostgreSQL 只监听 localhost：
+
+```bash
+sudo ss -ltnp | grep 5432
+```
+
+### 3. 创建私有数据目录
+
+开发时将 `.env` 中 `UPLOAD_ROOT` 改成当前 Linux 用户可写、仓库外的路径，例如 `/data/homework-system/uploads`。然后：
+
+```bash
+sudo ./scripts/setup-data-dir.sh /data/homework-system/uploads "$USER" "$USER"
+sudo install -d -o "$USER" -g "$USER" -m 0750 /data/homework-system/backups
+```
+
+### 4. build、migration、启动
+
+```bash
+pnpm install --frozen-lockfile
+pnpm db:migrate
+pnpm build
+pnpm start
+```
+
+另开终端确认应用仅监听本机：
+
+```bash
+curl -I http://127.0.0.1:3000/login
+```
+
+### 5. 配置 Nginx
+
+```bash
+sudo cp deploy/nginx/homework-system.conf /etc/nginx/sites-available/homework-system
+sudo ln -s /etc/nginx/sites-available/homework-system /etc/nginx/sites-enabled/homework-system
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
+
+## 实验室 Ubuntu 服务器部署
+
+代码不因 WSL 与实验室服务器改变；只替换环境文件、系统用户和域名。
+
+1. 安装 Node.js 22、pnpm、PostgreSQL、`postgresql-contrib`、Nginx。
+2. 创建服务用户和部署目录：
 
    ```bash
-   pnpm dlx supabase link --project-ref <project-ref>
-   pnpm dlx supabase db push
+   sudo useradd --system --home /opt/homework-system --shell /usr/sbin/nologin homework
+   sudo install -d -o homework -g homework /opt/homework-system
+   sudo install -d -o homework -g homework -m 0750 /data/homework-system/uploads
+   sudo install -d -o homework -g homework -m 0750 /data/homework-system/backups
    ```
 
-   这会按顺序应用 `supabase/migrations/` 中的表、索引、trigger、RLS、私有 `submissions` bucket 及 Storage policy。
+3. 将同一仓库 clone 到 `/opt/homework-system`，并让 `homework` 用户可读代码：
 
-4. 在 Supabase Dashboard → Authentication → Providers 启用 Email provider。首版没有注册页面；在 Authentication → Users 手动创建或邀请学生账号。建议关闭不需要的公开注册入口。
-5. 在 Authentication → URL Configuration 中加入本地 `http://localhost:3000` 和生产 Vercel 域名的 Site URL/Redirect URLs。
+   ```bash
+   sudo -u homework git clone <repository-url> /opt/homework-system
+   sudo -u homework pnpm install --frozen-lockfile
+   ```
 
-新建 Auth 用户会自动创建 `profiles` 记录，默认角色为 `student`。请在用户 metadata 里提供 `name` 和 `student_number`，或直接在 profile 中补充姓名和学号。
+4. 用 PostgreSQL 创建 `homework_user` 和 `homework` 数据库。
+5. 创建 `/etc/homework-system/homework-system.env`，owner 为 `root:homework`、权限为 `0640`；内容与 `.env.example` 相同，但使用生产数据库密码、生产 `APP_URL`、`COOKIE_SECURE=true`。该服务用户本来就需要在运行时读取这些值，不能把这个文件设为它不可读。
+6. 以服务用户执行 migration 与 build：
 
-### 指定管理员
+   ```bash
+   sudo -u homework env ENV_FILE=/etc/homework-system/homework-system.env pnpm db:migrate
+   sudo -u homework env ENV_FILE=/etc/homework-system/homework-system.env pnpm build
+   ```
 
-管理员只通过 Supabase SQL Editor 或受控运维脚本设置，普通用户无法在应用内修改角色：
+7. 安装服务：
 
-```sql
-update public.profiles
-set role = 'admin'
-where id = (select id from auth.users where email = 'teacher@example.edu');
+   ```bash
+   sudo cp deploy/systemd/homework-system.service.example /etc/systemd/system/homework-system.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable --now homework-system
+   sudo systemctl status homework-system
+   sudo journalctl -u homework-system -f
+   ```
+
+8. 安装 Nginx 配置并执行 `sudo nginx -t && sudo systemctl reload nginx`。
+
+生产网络仅公开 80/443 和按实验室安全策略管理的 SSH；不要公开 3000 或 5432。
+
+## HTTPS
+
+TLS 由 Nginx 终止，Next.js 仍只监听 `127.0.0.1:3000`。有公网域名时可安装 Certbot：
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d homework.example.edu.cn
 ```
 
-## 安全与上传行为
+也可使用学校提供的证书。启用 HTTPS 后更新环境文件的 `APP_URL` 与 `COOKIE_SECURE=true`，再重启 `homework-system`。
 
-- Bucket 完全私有；文件路径为 `{assignment_id}/{student_id}/{random_uuid}.{extension}`。
-- 只支持 PDF、ZIP、DOC、DOCX，最大 50 MB。浏览器、Server Action、数据库约束和 Storage policy 均校验限制。
-- 学生只可读写自身路径下、未截止作业的对象；RLS 强制 submission 的 `student_id = auth.uid()`。
-- 管理员由数据库 `profiles.role` 判断，可读取全部 profile、submission 和 Storage 对象。
-- 重新提交会更新唯一的 `(assignment_id, student_id)` 当前记录；旧文件会被最佳努力删除，不保留版本历史。
+## 备份
 
-## 检查与验收
+使用部署环境变量运行：
+
+```bash
+set -a
+. /etc/homework-system/homework-system.env
+set +a
+./scripts/backup.sh
+```
+
+脚本将创建 PostgreSQL custom-format dump 和 uploads 压缩包。`BACKUP_ROOT` 与 uploads 位于同一磁盘不能防止硬盘损坏；正式使用必须将备份同步到另一台服务器、NAS 或独立存储。
+
+## 日志与排错
+
+- 应用日志：`sudo journalctl -u homework-system -f`
+- Nginx access/error log：`/var/log/nginx/access.log`、`/var/log/nginx/error.log`
+- PostgreSQL：`sudo journalctl -u postgresql -f`
+
+普通用户只会收到通用错误消息；数据库错误、磁盘路径、session token、环境变量和堆栈只写入服务器日志。
+
+## 验证
 
 ```bash
 pnpm typecheck
@@ -74,16 +230,4 @@ pnpm test
 pnpm build
 ```
 
-手工验收需创建管理员和两名学生：
-
-1. 学生登录，查看作业，上传 PDF，再上传 ZIP，确认最后提交时间与文件都更新。
-2. 截止后在页面和直接调用 Supabase REST/Storage API 尝试上传/更新，均应被拒绝。
-3. 使用 student A 的 session 尝试读取 student B 的 submission row 或 Storage path；即使篡改 URL/请求，也必须被 RLS 拒绝。
-4. 管理员创建并编辑作业，确认提交统计、未提交学生和文件下载正确。
-
-## Vercel 部署
-
-1. 将仓库推送到 Git 服务并导入 Vercel，Framework 选择 Next.js。
-2. 在 Vercel Project Settings → Environment Variables 为 Preview 与 Production 设置两个 `NEXT_PUBLIC_SUPABASE_*` 变量。
-3. 将 Vercel 生产域名加入 Supabase Auth 的 Site URL 和 Redirect URLs。
-4. 部署后以管理员和两个学生账号执行上述验收；不要配置或暴露 service-role key。
+生产验收须通过 Nginx 完成：创建管理员和两名学生；创建作业；学生上传 PDF、重交 ZIP、下载本人文件；确认管理员能查看名单和下载；确认 student A 请求 student B 下载 URL 得到 404；将 deadline 设为过去后直接 POST 上传 API 也被拒绝。

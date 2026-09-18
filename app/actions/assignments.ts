@@ -3,8 +3,13 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/guards";
+import {
+  createAssignment,
+  deleteAssignment,
+  updateAssignment,
+} from "@/lib/db/assignments";
 import { parseShanghaiDateTime } from "@/lib/time";
-import { createClient } from "@/lib/supabase/server";
+import { removeStoredFile } from "@/lib/storage/local";
 
 function textField(formData: FormData, field: string, maxLength: number) {
   const value = String(formData.get(field) ?? "").trim();
@@ -31,12 +36,12 @@ export async function createAssignmentAction(formData: FormData) {
   const parsed = assignmentValues(formData);
   if ("error" in parsed) redirect(`/admin?error=${encodeURIComponent(parsed.error ?? "作业信息无效。")}`);
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("assignments")
-    .insert({ ...parsed.values, created_by: profile.id });
-
-  if (error) redirect("/admin?error=作业创建失败，请稍后重试。");
+  try {
+    await createAssignment(parsed.values, profile.id);
+  } catch (error) {
+    console.error("Assignment creation failed", error);
+    redirect("/admin?error=作业创建失败，请稍后重试。");
+  }
   revalidatePath("/");
   revalidatePath("/admin");
   redirect("/admin?success=作业已创建。");
@@ -48,13 +53,13 @@ export async function updateAssignmentAction(assignmentId: string, formData: For
   const basePath = `/admin/assignments/${assignmentId}`;
   if ("error" in parsed) redirect(`${basePath}?error=${encodeURIComponent(parsed.error ?? "作业信息无效。")}`);
 
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("assignments")
-    .update(parsed.values)
-    .eq("id", assignmentId);
-
-  if (error) redirect(`${basePath}?error=作业更新失败，请稍后重试。`);
+  try {
+    const assignment = await updateAssignment(assignmentId, parsed.values);
+    if (!assignment) redirect(`${basePath}?error=作业不存在。`);
+  } catch (error) {
+    console.error("Assignment update failed", error);
+    redirect(`${basePath}?error=作业更新失败，请稍后重试。`);
+  }
   revalidatePath("/");
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/admin");
@@ -64,16 +69,17 @@ export async function updateAssignmentAction(assignmentId: string, formData: For
 
 export async function deleteAssignmentAction(assignmentId: string) {
   await requireAdmin();
-  const supabase = await createClient();
-  const { data: submissions } = await supabase
-    .from("submissions")
-    .select("storage_path")
-    .eq("assignment_id", assignmentId);
-  const { error } = await supabase.from("assignments").delete().eq("id", assignmentId);
-  if (error) redirect("/admin?error=作业删除失败，请稍后重试。");
-
-  if (submissions?.length) {
-    await supabase.storage.from("submissions").remove(submissions.map((submission) => submission.storage_path));
+  try {
+    const { deleted, paths } = await deleteAssignment(assignmentId);
+    if (!deleted) redirect("/admin?error=作业不存在。 ");
+    for (const storagePath of paths) {
+      removeStoredFile(storagePath).catch((error: unknown) => {
+        console.error("Could not remove deleted assignment file", error);
+      });
+    }
+  } catch (error) {
+    console.error("Assignment deletion failed", error);
+    redirect("/admin?error=作业删除失败，请稍后重试。");
   }
 
   revalidatePath("/");

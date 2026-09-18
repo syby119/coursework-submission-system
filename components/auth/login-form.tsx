@@ -11,12 +11,12 @@ export function LoginForm() {
   return (
     <form action={formAction} className="space-y-5">
       <label className="block text-sm font-medium text-slate-700">
-        邮箱
+        学号
         <input
           className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 transition focus:ring-2"
-          name="email"
-          type="email"
-          autoComplete="email"
+          name="student_number"
+          type="text"
+          autoComplete="username"
           required
         />
       </label>

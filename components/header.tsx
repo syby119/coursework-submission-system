@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions/auth";
-import type { AuthenticatedProfile } from "@/lib/auth/guards";
+import type { AuthenticatedUser } from "@/lib/auth/guards";
 
-export function Header({ profile }: { profile: AuthenticatedProfile }) {
+export function Header({ profile }: { profile: AuthenticatedUser }) {
   const home = profile.role === "admin" ? "/admin" : "/";
   return (
     <header className="border-b border-slate-200 bg-white">

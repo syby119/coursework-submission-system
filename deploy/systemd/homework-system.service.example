@@ -1,0 +1,21 @@
+[Unit]
+Description=Coursework submission system
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=homework
+Group=homework
+WorkingDirectory=/opt/homework-system
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=/etc/homework-system/homework-system.env
+ExecStart=/usr/bin/env pnpm start
+Restart=always
+RestartSec=5
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
