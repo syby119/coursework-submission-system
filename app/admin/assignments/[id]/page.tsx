@@ -37,7 +37,15 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
       <section className="mt-7">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div><h2 className="text-lg font-semibold text-slate-900">提交情况</h2><p className="mt-1 text-sm text-slate-600">以全部学生账号为名单基准。</p></div>
-          <div className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</div>
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <a
+              href={`/api/admin/assignments/${assignment.id}/export`}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              导出全部作业（ZIP）
+            </a>
+            <div className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</div>
+          </div>
         </div>
         <div className="mt-4"><AdminSubmissionTable students={students} submissions={submissions} /></div>
       </section>
