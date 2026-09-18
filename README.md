@@ -168,6 +168,8 @@ sudo systemctl reload nginx
 
 模板的 `server_name localhost` 会让 `http://localhost` 命中本系统；不需要删除 Nginx 的 `default` 站点。未启用 systemd 时，最后一条命令使用 `sudo service nginx reload`。现在通过 `http://localhost/login` 访问。Nginx 已设置 60 MB 请求限制，且没有任何 uploads 静态目录配置。
 
+模板也会转发 WebSocket Upgrade header，因此 `pnpm dev` 的 Next.js HMR 可通过 Nginx 工作。若浏览器日志出现 `GET /_next/hmr ... 404`，重新复制模板、执行 `sudo nginx -t` 并 reload Nginx，再刷新浏览器页面。
+
 ### 同一服务器部署多个网站
 
 每个网站都应有独立的 Nginx server block 和唯一的 `server_name`。实验室服务器复制模板后，编辑 `/etc/nginx/sites-available/homework-system`，将 `server_name localhost;` 改为学校分配的域名，例如：
