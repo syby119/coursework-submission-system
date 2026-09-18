@@ -2,11 +2,11 @@ import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { ZipFile } from "yazl";
 import { NextResponse } from "next/server";
+import { prepareZipForExport, type PreparedZipArchive } from "@/lib/archive/zip";
 import {
   assignmentArchiveDirectory,
   assignmentArchiveFilename,
   studentArchiveDirectory,
-  submissionArchiveFilename,
 } from "@/lib/archive/paths";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { findAssignment } from "@/lib/db/assignments";
@@ -17,9 +17,8 @@ import { isUuid } from "@/lib/validation/submission";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type ExportedFile = {
-  absolutePath: string;
-  filename: string;
+type ExportedArchive = {
+  archive: PreparedZipArchive;
 };
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
@@ -39,28 +38,36 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
     // Verify every file before starting the response. That prevents delivering
     // a partial archive if an old database row points to a missing file.
-    const exportedFiles = await Promise.all(
-      submissions.map(async (submission) => {
+    const archivesByStudent = new Map<string, ExportedArchive>();
+    try {
+      for (const submission of submissions) {
         const absolutePath = resolveStoredPath(submission.storage_path);
         if (!absolutePath) throw new Error(`Invalid submission storage path: ${submission.id}`);
 
         const file = await stat(absolutePath);
         if (!file.isFile()) throw new Error(`Submission is not a regular file: ${submission.id}`);
 
-        return [
-          submission.student_id,
-          {
-            absolutePath,
-            filename: submissionArchiveFilename(submission.original_filename),
-          },
-        ] as const;
-      }),
-    );
-    const filesByStudent = new Map<string, ExportedFile>(exportedFiles);
+        const archive = await prepareZipForExport(absolutePath, submission.original_filename);
+        archivesByStudent.get(submission.student_id)?.archive.close();
+        archivesByStudent.set(submission.student_id, { archive });
+      }
+    } catch (error) {
+      for (const { archive } of archivesByStudent.values()) archive.close();
+      throw error;
+    }
 
     const zip = new ZipFile();
+    let sourceArchivesClosed = false;
+    const closeSourceArchives = () => {
+      if (sourceArchivesClosed) return;
+      sourceArchivesClosed = true;
+      for (const { archive } of archivesByStudent.values()) archive.close();
+    };
+    zip.outputStream.once("end", closeSourceArchives);
+    zip.outputStream.once("close", closeSourceArchives);
     zip.outputStream.on("error", (error) => {
       console.error("Assignment archive stream failed", error);
+      closeSourceArchives();
     });
 
     const rootDirectory = assignmentArchiveDirectory(assignment.title);
@@ -71,9 +78,20 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
       const archiveDirectory = `${rootDirectory}/${directory}`;
       zip.addEmptyDirectory(archiveDirectory);
 
-      const submission = filesByStudent.get(student.id);
+      const submission = archivesByStudent.get(student.id);
       if (submission) {
-        zip.addFile(submission.absolutePath, `${archiveDirectory}/${submission.filename}`);
+        for (const entry of submission.archive.entries) {
+          const entryPath = `${archiveDirectory}/${entry.archivePath}`;
+          if (entry.isDirectory) {
+            zip.addEmptyDirectory(entryPath);
+            continue;
+          }
+          zip.addReadStreamLazy(entryPath, { size: entry.entry.uncompressedSize }, (callback) => {
+            void submission.archive.openReadStream(entry.entry)
+              .then((stream) => callback(null, stream))
+              .catch((error: unknown) => callback(error, null as unknown as NodeJS.ReadableStream));
+          });
+        }
       }
     }
 

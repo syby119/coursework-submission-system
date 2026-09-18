@@ -14,7 +14,9 @@ Browser → Nginx :80/:443 → Next.js :3000 (127.0.0.1)
 - 会话是 HttpOnly、SameSite=Lax 的随机 token cookie；数据库只保存带 `SESSION_SECRET` HMAC 的 token hash。
 - 浏览器不连接数据库，PostgreSQL 不应暴露公网；每个请求在服务器端重新读取 session 与 role。
 - 上传文件从不由 Nginx 静态暴露。下载必须通过受认证的应用 endpoint。
-- 上传采用流式 multipart 解析，最大 50 MB；只允许 PDF、ZIP、DOC、DOCX。
+- 上传采用流式 multipart 解析，最大 50 MB；只允许 ZIP，并在服务器端校验压缩包结构与解压后大小。
+- 管理员导出会在 ZIP 内将每位学生的压缩包内容直接展开到 `作业名/学号_姓名/`。为防范 ZIP bomb，压缩包最多 1,000 个条目，单文件最多 250 MB、解压总量最多 500 MB；拒绝路径穿越、符号链接、加密和不支持的压缩方法。
+- 旧版本中已保存的 PDF、DOC、DOCX 仍可单独下载，但不能在新导出流程中展开；对应学生须重新提交 ZIP 后才能导出该作业。
 - 时间以 PostgreSQL UTC `timestamptz` 存储，界面使用 `Asia/Shanghai` 显示。
 
 ## 依赖
@@ -265,4 +267,4 @@ pnpm test
 pnpm build
 ```
 
-生产验收须通过 Nginx 完成：创建管理员和两名学生；创建作业；学生上传 PDF、重交 ZIP、下载本人文件；确认管理员能查看名单和下载；确认 student A 请求 student B 下载 URL 得到 404；将 deadline 设为过去后直接 POST 上传 API 也被拒绝。
+生产验收须通过 Nginx 完成：创建管理员和两名学生；创建作业；学生上传 ZIP、重交 ZIP、下载本人文件；确认管理员能查看名单、下载和导出 ZIP（学生目录内直接是压缩包内容）；确认 student A 请求 student B 下载 URL 得到 404；将 deadline 设为过去后直接 POST 上传 API 也被拒绝。

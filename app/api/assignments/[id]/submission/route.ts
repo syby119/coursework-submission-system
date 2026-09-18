@@ -4,6 +4,7 @@ import type { ReadableStream as NodeReadableStream } from "node:stream/web";
 import Busboy from "busboy";
 import { type NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/current-user";
+import { ZipArchiveError, validateSubmittedZip } from "@/lib/archive/zip";
 import { findPublishedAssignment } from "@/lib/db/assignments";
 import { replaceSubmission } from "@/lib/db/submissions";
 import { hasTrustedOrigin } from "@/lib/http/csrf";
@@ -139,6 +140,12 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     if (!validation.valid) throw new UploadError(400, validation.error);
     if (!hasAllowedMimeType(validation.extension, uploaded.mimeType)) {
       throw new UploadError(400, "文件类型与扩展名不匹配。 ");
+    }
+    try {
+      await validateSubmittedZip(tempPath);
+    } catch (error) {
+      if (error instanceof ZipArchiveError) throw new UploadError(400, error.message);
+      throw error;
     }
 
     const currentAssignment = await findPublishedAssignment(assignmentId);

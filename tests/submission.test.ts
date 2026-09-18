@@ -8,15 +8,15 @@ import {
 } from "../lib/validation/submission";
 
 describe("submission file validation", () => {
-  it("accepts supported files within the configured limit", () => {
-    expect(validateSubmissionFile("homework.PDF", 1024)).toMatchObject({
+  it("accepts ZIP files within the configured limit", () => {
+    expect(validateSubmissionFile("homework.ZIP", 1024)).toMatchObject({
       valid: true,
-      extension: "pdf",
+      extension: "zip",
     });
   });
 
   it("rejects unsupported extensions and oversize files", () => {
-    expect(validateSubmissionFile("script.exe", 1024)).toMatchObject({ valid: false });
+    expect(validateSubmissionFile("homework.pdf", 1024)).toMatchObject({ valid: false });
     expect(validateSubmissionFile("homework.zip", MAX_FILE_SIZE + 1)).toMatchObject({ valid: false });
   });
 
@@ -29,8 +29,8 @@ describe("submission file validation", () => {
   });
 
   it("uses MIME type as an additional server-side check", () => {
-    expect(hasAllowedMimeType("pdf", "application/pdf")).toBe(true);
-    expect(hasAllowedMimeType("pdf", "application/zip")).toBe(false);
+    expect(hasAllowedMimeType("zip", "application/zip")).toBe(true);
+    expect(hasAllowedMimeType("zip", "application/pdf")).toBe(false);
   });
 
   it("only accepts RFC UUID values for route identifiers", () => {

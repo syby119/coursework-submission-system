@@ -30,11 +30,3 @@ export function studentArchiveDirectory(studentNumber: string, studentName: stri
   const name = archivePathSegment(studentName, "未命名学生");
   return `${number}_${name}`;
 }
-
-export function submissionArchiveFilename(originalFilename: string) {
-  const normalized = originalFilename.normalize("NFKC");
-  const extensionMatch = /\.(pdf|zip|doc|docx)$/i.exec(normalized);
-  const extension = extensionMatch?.[0].toLowerCase() ?? ".bin";
-  const basename = extensionMatch ? normalized.slice(0, -extensionMatch[0].length) : normalized;
-  return `${archivePathSegment(basename, "submission")}${extension}`;
-}

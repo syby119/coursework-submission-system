@@ -54,8 +54,8 @@ export function UploadForm({ assignmentId, disabled }: { assignmentId: string; d
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <input name="file" type="file" accept=".pdf,.zip,.doc,.docx,application/pdf,application/zip,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" disabled={disabled || pending} className="block w-full rounded-lg border border-slate-300 bg-white text-sm file:mr-4 file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:font-medium file:text-indigo-700" />
-      <p className="text-xs text-slate-500">支持 PDF、ZIP、DOC、DOCX，最大 {MAX_FILE_SIZE / 1024 / 1024} MB。</p>
+      <input name="file" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={disabled || pending} className="block w-full rounded-lg border border-slate-300 bg-white text-sm file:mr-4 file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:font-medium file:text-indigo-700" />
+      <p className="text-xs text-slate-500">仅支持 ZIP 压缩包，最大 {MAX_FILE_SIZE / 1024 / 1024} MB。</p>
       {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
       {message ? <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p> : null}
       <button type="submit" disabled={disabled || pending} className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">

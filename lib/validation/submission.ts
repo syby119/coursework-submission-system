@@ -1,12 +1,9 @@
 export const MAX_FILE_SIZE = 50 * 1024 * 1024;
-export const ALLOWED_EXTENSIONS = ["pdf", "zip", "doc", "docx"] as const;
+export const ALLOWED_EXTENSIONS = ["zip"] as const;
 type AllowedExtension = (typeof ALLOWED_EXTENSIONS)[number];
 
 const ALLOWED_MIME_TYPES: Record<AllowedExtension, readonly string[]> = {
-  pdf: ["application/pdf", "application/octet-stream"],
   zip: ["application/zip", "application/x-zip-compressed", "application/octet-stream"],
-  doc: ["application/msword", "application/octet-stream"],
-  docx: ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/octet-stream"],
 };
 
 export type FileValidation =
@@ -27,7 +24,7 @@ export function validateSubmissionFile(filename: string, size: number): FileVali
     return { valid: false, error: "文件不能超过 50 MB。" };
   }
   if (!extension || !ALLOWED_EXTENSIONS.includes(extension as AllowedExtension)) {
-    return { valid: false, error: "仅支持 PDF、ZIP、DOC 和 DOCX 文件。" };
+    return { valid: false, error: "仅支持 ZIP 压缩包。" };
   }
 
   return { valid: true, extension: extension as AllowedExtension, safeFilename };
