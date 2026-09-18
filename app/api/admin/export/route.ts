@@ -9,7 +9,7 @@ import {
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { listAllAssignments } from "@/lib/db/assignments";
 import { listAssignmentSubmissions, listStudents } from "@/lib/db/submissions";
-import { addAssignmentFilesToZip } from "@/lib/export/assignment-files";
+import { addAssignmentFilesToZip, EXPORT_ZIP_COMPRESSION_LEVEL } from "@/lib/export/assignment-files";
 import { createGradeSummaryWorkbook } from "@/lib/export/grades";
 import type { Assignment, Submission } from "@/types/database";
 
@@ -52,7 +52,9 @@ export async function GET() {
       students,
       submissionGroups.flatMap(([, submissions]) => submissions),
     );
-    zip.addBuffer(Buffer.from(gradeWorkbook), `${rootDirectory}/成绩汇总.xlsx`, { compress: false });
+    zip.addBuffer(Buffer.from(gradeWorkbook), `${rootDirectory}/成绩汇总.xlsx`, {
+      compressionLevel: EXPORT_ZIP_COMPRESSION_LEVEL,
+    });
 
     const closeFunctions: Array<() => void> = [];
     try {

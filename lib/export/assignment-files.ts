@@ -5,6 +5,9 @@ import { studentArchiveDirectory } from "@/lib/archive/paths";
 import { resolveStoredPath } from "@/lib/storage/local";
 import type { Submission, User } from "@/types/database";
 
+/** Highest zlib compression level supported by ZIP/DEFLATE. */
+export const EXPORT_ZIP_COMPRESSION_LEVEL = 9;
+
 type ExportedArchive = { archive: PreparedZipArchive };
 
 /** Adds one assignment's student folders and extracted submission contents to a ZIP. */
@@ -47,7 +50,10 @@ export async function addAssignmentFilesToZip(
         zip.addEmptyDirectory(entryPath);
         continue;
       }
-      zip.addReadStreamLazy(entryPath, { size: entry.entry.uncompressedSize }, (callback) => {
+      zip.addReadStreamLazy(entryPath, {
+        size: entry.entry.uncompressedSize,
+        compressionLevel: EXPORT_ZIP_COMPRESSION_LEVEL,
+      }, (callback) => {
         void submission.archive.openReadStream(entry.entry)
           .then((stream) => callback(null, stream))
           .catch((error: unknown) => callback(error, null as unknown as NodeJS.ReadableStream));
