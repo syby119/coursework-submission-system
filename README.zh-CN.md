@@ -46,7 +46,7 @@ openssl rand -base64 48
 
 | 变量 | 说明 |
 | --- | --- |
-| `DATABASE_URL` | 本机 PostgreSQL 连接，例如 `postgresql://homework_user:password@127.0.0.1:5432/homework` |
+| `DATABASE_URL` | 本机 PostgreSQL 连接，例如 `postgresql://coursework_user:password@127.0.0.1:5432/coursework` |
 | `UPLOAD_ROOT` | 仓库外、仅应用用户可读写的上传目录 |
 | `BACKUP_ROOT` | 备份输出目录 |
 | `SESSION_SECRET` | 至少 32 字符的随机 secret；可用上面的 `openssl` 命令生成 |
@@ -68,8 +68,8 @@ openssl rand -base64 48
 2. 创建 PostgreSQL 用户与数据库（Ubuntu/WSL）：
 
    ```bash
-   sudo -u postgres createuser --pwprompt homework_user
-   sudo -u postgres createdb --owner=homework_user homework
+   sudo -u postgres createuser --pwprompt coursework_user
+   sudo -u postgres createdb --owner=coursework_user coursework
    ```
 
 3. 创建私有数据目录。`$USER` 应为运行 Next.js 的 Linux 用户：
@@ -165,8 +165,8 @@ WSL 与实验室服务器使用同一份代码和 migration；只有环境变量
    sudo -u homework git clone <repository-url> /opt/homework-system
    cd /opt/homework-system
    sudo -u homework pnpm install --frozen-lockfile
-   sudo -u postgres createuser --pwprompt homework_user
-   sudo -u postgres createdb --owner=homework_user homework
+   sudo -u postgres createuser --pwprompt coursework_user
+   sudo -u postgres createdb --owner=coursework_user coursework
    ```
 
 3. 创建 `/etc/homework-system/homework-system.env`，内容以 `.env.example` 为准。建议 owner 设为 `root:homework`、权限 `0640`；生产环境应设置真实数据库密码、HTTPS `APP_URL` 和 `COOKIE_SECURE=true`。

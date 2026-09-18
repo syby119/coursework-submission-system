@@ -47,7 +47,7 @@ openssl rand -base64 48
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Local PostgreSQL connection, for example `postgresql://homework_user:password@127.0.0.1:5432/homework` |
+| `DATABASE_URL` | Local PostgreSQL connection, for example `postgresql://coursework_user:password@127.0.0.1:5432/coursework` |
 | `UPLOAD_ROOT` | Upload directory outside the repository, writable only by the application user |
 | `BACKUP_ROOT` | Backup output directory |
 | `SESSION_SECRET` | Random secret with at least 32 characters; generate one with the `openssl` command above |
@@ -69,8 +69,8 @@ For local access through Nginx, use `APP_URL=http://localhost` and `COOKIE_SECUR
 2. Create the PostgreSQL user and database on Ubuntu/WSL:
 
    ```bash
-   sudo -u postgres createuser --pwprompt homework_user
-   sudo -u postgres createdb --owner=homework_user homework
+   sudo -u postgres createuser --pwprompt coursework_user
+   sudo -u postgres createdb --owner=coursework_user coursework
    ```
 
 3. Create private data directories. `$USER` must be the Linux user that runs Next.js:
@@ -166,8 +166,8 @@ WSL and the lab server use the same code and migrations. Only environment values
    sudo -u homework git clone <repository-url> /opt/homework-system
    cd /opt/homework-system
    sudo -u homework pnpm install --frozen-lockfile
-   sudo -u postgres createuser --pwprompt homework_user
-   sudo -u postgres createdb --owner=homework_user homework
+   sudo -u postgres createuser --pwprompt coursework_user
+   sudo -u postgres createdb --owner=coursework_user coursework
    ```
 
 3. Create `/etc/homework-system/homework-system.env` from `.env.example`. Recommended ownership is `root:homework` with mode `0640`. Use the production database password, HTTPS `APP_URL`, and `COOKIE_SECURE=true`.
