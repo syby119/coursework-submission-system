@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { signOutAction } from "@/app/actions/auth";
+import { AdminNavigation } from "@/components/admin/admin-navigation";
 import type { AuthenticatedUser } from "@/lib/auth/guards";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { t } from "@/lib/i18n";
@@ -11,11 +12,13 @@ export async function Header({ profile }: { profile: AuthenticatedUser }) {
   return (
     <header className="border-b border-slate-200 bg-white">
       <div className="mx-auto flex min-h-16 max-w-6xl items-center justify-between gap-3 px-4 sm:gap-4 sm:px-6">
-        <Link href={home} className="max-w-32 truncate font-semibold tracking-tight text-slate-900 sm:max-w-none">
-          {t(locale, "systemTitle")}
-        </Link>
-        <div className="flex shrink-0 items-center gap-1.5 text-xs sm:gap-3 sm:text-sm">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link href={home} className="max-w-32 truncate font-semibold tracking-tight text-slate-900 sm:max-w-none">
+            {t(locale, "systemTitle")}
+          </Link>
           <LanguageSwitcher locale={locale} />
+        </div>
+        <div className="flex shrink-0 items-center gap-1.5 text-xs sm:gap-3 sm:text-sm">
           <span className="hidden text-slate-600 sm:inline">{profile.name}</span>
           {profile.role === "student" ? (
             <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/account/password">
@@ -23,14 +26,7 @@ export async function Header({ profile }: { profile: AuthenticatedUser }) {
             </Link>
           ) : null}
           {profile.role === "admin" ? (
-            <>
-              <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin">
-                {t(locale, "assignmentManagement")}
-              </Link>
-              <Link className="rounded-md px-2.5 py-1.5 font-medium text-indigo-700 hover:bg-indigo-50" href="/admin/students">
-                {t(locale, "studentManagement")}
-              </Link>
-            </>
+            <AdminNavigation locale={locale} />
           ) : null}
           <form action={signOutAction}>
             <button className="rounded-md border border-slate-300 px-2.5 py-1.5 font-medium text-slate-700 hover:bg-slate-50">
