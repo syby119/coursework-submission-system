@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AssignmentOverview } from "@/components/admin/assignment-overview";
 import { AssignmentSubmissionManagement } from "@/components/admin/assignment-submission-management";
-import { EditAssignmentDialog } from "@/components/admin/edit-assignment-dialog";
+import { AssignmentDialog } from "@/components/admin/assignment-dialog";
 import { requireAdmin } from "@/lib/auth/guards";
 import { findAssignment } from "@/lib/db/assignments";
 import { listAssignmentSubmissions, listStudents } from "@/lib/db/submissions";
@@ -55,7 +55,16 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
       {messages.error && !editOpen ? <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
       {tab === "detail" ? <AssignmentOverview assignment={assignment} /> : null}
       {tab === "submissions" ? <AssignmentSubmissionManagement assignment={assignment} students={students} submissions={submissions} /> : null}
-      {editOpen ? <EditAssignmentDialog assignment={assignment} closeHref={detailHref} error={messages.error} /> : null}
+      {editOpen ? (
+        <AssignmentDialog
+          title="编辑作业"
+          assignment={assignment}
+          closeHref={detailHref}
+          error={messages.error}
+          errorPath={`${detailHref}&edit=1`}
+          successPath={detailHref}
+        />
+      ) : null}
     </main>
   );
 }

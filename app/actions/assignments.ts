@@ -53,12 +53,12 @@ function assignmentValues(formData: FormData) {
   return { values: { title, description, published_at: publishedAt, deadline } };
 }
 
-export async function createAssignmentAction(formData: FormData) {
+export async function createAssignmentAction(errorPath: string, successPath: string, formData: FormData) {
   const profile = await requireAdmin();
   const parsed = assignmentValues(formData);
-  if ("error" in parsed) redirectWithMessage("/admin", "error", parsed.error ?? "作业信息无效。");
+  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? "作业信息无效。");
   if (await findAssignmentByTitle(parsed.values.title)) {
-    redirectWithMessage("/admin", "error", duplicateTitleMessage(parsed.values.title, "创建"));
+    redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "创建"));
   }
 
   try {
@@ -66,13 +66,13 @@ export async function createAssignmentAction(formData: FormData) {
   } catch (error) {
     console.error("Assignment creation failed", error);
     if (isDuplicateTitleError(error)) {
-      redirectWithMessage("/admin", "error", duplicateTitleMessage(parsed.values.title, "创建"));
+      redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "创建"));
     }
-    redirectWithMessage("/admin", "error", "作业创建失败，请稍后重试。");
+    redirectWithMessage(errorPath, "error", "作业创建失败，请稍后重试。");
   }
   revalidatePath("/");
   revalidatePath("/admin");
-  redirectWithMessage("/admin", "success", "作业已创建。");
+  redirectWithMessage(successPath, "success", "作业已创建。");
 }
 
 export async function updateAssignmentAction(

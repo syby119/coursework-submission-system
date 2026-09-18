@@ -14,7 +14,7 @@ export function AssignmentForm({ assignment, cancelHref, errorPath, successPath 
   const defaultPath = assignment ? `/admin/assignments/${assignment.id}` : "/admin";
   const action = assignment
     ? updateAssignmentAction.bind(null, assignment.id, errorPath ?? defaultPath, successPath ?? defaultPath)
-    : createAssignmentAction;
+    : createAssignmentAction.bind(null, errorPath ?? defaultPath, successPath ?? defaultPath);
   const defaultPublished = assignment ? formatDateTimeLocal(assignment.published_at) : formatDateTimeLocal(new Date().toISOString());
   const defaultDeadline = assignment
     ? formatDateTimeLocal(assignment.deadline)
@@ -40,11 +40,11 @@ export function AssignmentForm({ assignment, cancelHref, errorPath, successPath 
           <input name="deadline" type="datetime-local" defaultValue={defaultDeadline} required className="rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 focus:ring-2" />
         </label>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={`flex flex-wrap items-center gap-3 ${cancelHref ? "justify-end" : ""}`}>
+        {cancelHref ? <Link href={cancelHref} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">取消</Link> : null}
         <button className="w-fit rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
           {assignment ? "保存修改" : "创建作业"}
         </button>
-        {cancelHref ? <Link href={cancelHref} className="text-sm font-medium text-slate-600 hover:text-slate-900">取消</Link> : null}
       </div>
     </form>
   );

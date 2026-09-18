@@ -1,54 +1,55 @@
 import Link from "next/link";
-import { AssignmentForm } from "@/components/admin/assignment-form";
-import { deleteAssignmentAction } from "@/app/actions/assignments";
+import { AdminAssignmentList } from "@/components/admin/admin-assignment-list";
+import { AssignmentDialog } from "@/components/admin/assignment-dialog";
+import { DeleteAssignmentDialog } from "@/components/admin/delete-assignment-dialog";
 import { requireAdmin } from "@/lib/auth/guards";
 import { listAllAssignments } from "@/lib/db/assignments";
-import { formatDateTime } from "@/lib/time";
 
-type AdminPageProps = { searchParams: Promise<{ error?: string; success?: string }> };
+type AdminPageProps = { searchParams: Promise<{ create?: string; delete?: string; error?: string; success?: string }> };
 
 export default async function AdminPage({ searchParams }: AdminPageProps) {
   await requireAdmin();
   const messages = await searchParams;
   const assignments = await listAllAssignments();
+  const createOpen = messages.create === "1";
+  const assignmentToDelete = createOpen ? undefined : assignments.find((assignment) => assignment.id === messages.delete);
 
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-5 border-b border-slate-200 pb-6">
         <div>
           <p className="text-sm font-medium text-indigo-700">管理员后台</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">作业管理</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">作业管理</h1>
+          <p className="mt-2 text-sm text-slate-600">创建、查看和维护当前课程作业。</p>
         </div>
-        <a href="/api/admin/export" className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-          一键导出全部作业和成绩（ZIP）
-        </a>
+        <div className="flex flex-wrap items-center gap-3">
+          <a href="/api/admin/export" className="rounded-lg border border-indigo-200 bg-white px-4 py-2.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+            导出全部
+          </a>
+          <Link href="/admin?create=1" className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+            ＋ 新建作业
+          </Link>
+        </div>
       </div>
-      {messages.error ? <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
+      {messages.error && !createOpen ? <p className="mb-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
       {messages.success ? <p className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{messages.success}</p> : null}
-      <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-slate-900">新建作业</h2>
-        <div className="mt-5"><AssignmentForm /></div>
-      </section>
-      <section className="mt-7">
-        <h2 className="text-lg font-semibold text-slate-900">全部作业</h2>
-        <div className="mt-4 grid gap-3">
-          {assignments.map((assignment) => (
-            <article className="flex flex-col justify-between gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center" key={assignment.id}>
-              <div>
-                <h3 className="font-semibold text-slate-900">{assignment.title}</h3>
-                <p className="mt-1 text-sm text-slate-600">截止：{formatDateTime(assignment.deadline)}</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Link className="text-sm font-medium text-indigo-700 hover:text-indigo-900" href={`/admin/assignments/${assignment.id}`}>编辑/查看</Link>
-                <form action={deleteAssignmentAction.bind(null, assignment.id)}>
-                  <button className="text-sm font-medium text-red-700 hover:text-red-900">删除</button>
-                </form>
-              </div>
-            </article>
-          ))}
-          {!assignments.length ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">尚未创建作业。</p> : null}
+      <section>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-lg font-semibold text-slate-900">全部作业</h2>
+          <p className="text-sm text-slate-500">共 {assignments.length} 个作业 · 时间均为北京时间（UTC+8）</p>
         </div>
+        <div className="mt-4"><AdminAssignmentList assignments={assignments} /></div>
       </section>
+      {createOpen ? (
+        <AssignmentDialog
+          title="新建作业"
+          closeHref="/admin"
+          error={messages.error}
+          errorPath="/admin?create=1"
+          successPath="/admin"
+        />
+      ) : null}
+      {assignmentToDelete ? <DeleteAssignmentDialog assignment={assignmentToDelete} closeHref="/admin" /> : null}
     </main>
   );
 }
