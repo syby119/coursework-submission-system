@@ -34,7 +34,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                 <p className="mt-1 text-sm text-slate-600">截止：{formatDateTime(assignment.deadline)}</p>
               </div>
               <div className="flex items-center gap-3">
-                <Link className="text-sm font-medium text-indigo-700 hover:text-indigo-900" href={`/admin/assignments/${assignment.id}`}>编辑/查看提交情况</Link>
+                <Link className="text-sm font-medium text-indigo-700 hover:text-indigo-900" href={`/admin/assignments/${assignment.id}`}>编辑/查看</Link>
                 <form action={deleteAssignmentAction.bind(null, assignment.id)}>
                   <button className="text-sm font-medium text-red-700 hover:text-red-900">删除</button>
                 </form>
