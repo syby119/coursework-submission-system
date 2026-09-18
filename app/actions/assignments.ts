@@ -16,6 +16,10 @@ function textField(formData: FormData, field: string, maxLength: number) {
   return value.length <= maxLength ? value : "";
 }
 
+function redirectWithMessage(path: string, key: "error" | "success", message: string): never {
+  redirect(`${path}?${key}=${encodeURIComponent(message)}`);
+}
+
 function assignmentValues(formData: FormData) {
   const title = textField(formData, "title", 200);
   const description = textField(formData, "description", 10000);
@@ -34,55 +38,57 @@ function assignmentValues(formData: FormData) {
 export async function createAssignmentAction(formData: FormData) {
   const profile = await requireAdmin();
   const parsed = assignmentValues(formData);
-  if ("error" in parsed) redirect(`/admin?error=${encodeURIComponent(parsed.error ?? "作业信息无效。")}`);
+  if ("error" in parsed) redirectWithMessage("/admin", "error", parsed.error ?? "作业信息无效。");
 
   try {
     await createAssignment(parsed.values, profile.id);
   } catch (error) {
     console.error("Assignment creation failed", error);
-    redirect("/admin?error=作业创建失败，请稍后重试。");
+    redirectWithMessage("/admin", "error", "作业创建失败，请稍后重试。");
   }
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?success=作业已创建。");
+  redirectWithMessage("/admin", "success", "作业已创建。");
 }
 
 export async function updateAssignmentAction(assignmentId: string, formData: FormData) {
   await requireAdmin();
   const parsed = assignmentValues(formData);
   const basePath = `/admin/assignments/${assignmentId}`;
-  if ("error" in parsed) redirect(`${basePath}?error=${encodeURIComponent(parsed.error ?? "作业信息无效。")}`);
+  if ("error" in parsed) redirectWithMessage(basePath, "error", parsed.error ?? "作业信息无效。");
 
+  let assignment;
   try {
-    const assignment = await updateAssignment(assignmentId, parsed.values);
-    if (!assignment) redirect(`${basePath}?error=作业不存在。`);
+    assignment = await updateAssignment(assignmentId, parsed.values);
   } catch (error) {
     console.error("Assignment update failed", error);
-    redirect(`${basePath}?error=作业更新失败，请稍后重试。`);
+    redirectWithMessage(basePath, "error", "作业更新失败，请稍后重试。");
   }
+  if (!assignment) redirectWithMessage(basePath, "error", "作业不存在。");
   revalidatePath("/");
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/admin");
   revalidatePath(basePath);
-  redirect(`${basePath}?success=作业已更新。`);
+  redirectWithMessage(basePath, "success", "作业已更新。");
 }
 
 export async function deleteAssignmentAction(assignmentId: string) {
   await requireAdmin();
+  let result;
   try {
-    const { deleted, paths } = await deleteAssignment(assignmentId);
-    if (!deleted) redirect("/admin?error=作业不存在。 ");
-    for (const storagePath of paths) {
-      removeStoredFile(storagePath).catch((error: unknown) => {
-        console.error("Could not remove deleted assignment file", error);
-      });
-    }
+    result = await deleteAssignment(assignmentId);
   } catch (error) {
     console.error("Assignment deletion failed", error);
-    redirect("/admin?error=作业删除失败，请稍后重试。");
+    redirectWithMessage("/admin", "error", "作业删除失败，请稍后重试。");
+  }
+  if (!result.deleted) redirectWithMessage("/admin", "error", "作业不存在。");
+  for (const storagePath of result.paths) {
+    removeStoredFile(storagePath).catch((error: unknown) => {
+      console.error("Could not remove deleted assignment file", error);
+    });
   }
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirect("/admin?success=作业已删除。");
+  redirectWithMessage("/admin", "success", "作业已删除。");
 }
