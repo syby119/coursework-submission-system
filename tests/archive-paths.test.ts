@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assignmentArchiveDirectory,
   assignmentArchiveFilename,
+  assignmentGradeFilename,
   studentArchiveDirectory,
 } from "../lib/archive/paths";
 
@@ -9,6 +10,7 @@ describe("archive entry names", () => {
   it("keeps normal Chinese assignment and student names readable", () => {
     expect(assignmentArchiveFilename("作业 3")).toBe("作业 3.zip");
     expect(assignmentArchiveDirectory("作业 3")).toBe("作业 3");
+    expect(assignmentGradeFilename("作业 3")).toBe("作业 3-成绩.xlsx");
     expect(studentArchiveDirectory("test001", "张三")).toBe("test001_张三");
   });
 

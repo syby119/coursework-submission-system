@@ -44,6 +44,12 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
             >
               导出全部作业（ZIP）
             </a>
+            <a
+              href={`/api/admin/assignments/${assignment.id}/grades`}
+              className="rounded-lg border border-indigo-200 bg-white px-4 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+            >
+              导出成绩（Excel）
+            </a>
             <div className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</div>
           </div>
         </div>

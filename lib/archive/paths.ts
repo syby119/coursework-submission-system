@@ -21,6 +21,10 @@ export function assignmentArchiveFilename(title: string) {
   return `${assignmentArchiveDirectory(title)}.zip`;
 }
 
+export function assignmentGradeFilename(title: string) {
+  return `${assignmentArchiveDirectory(title)}-成绩.xlsx`;
+}
+
 export function assignmentArchiveDirectory(title: string) {
   return archivePathSegment(title, "作业");
 }

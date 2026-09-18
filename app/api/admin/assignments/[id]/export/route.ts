@@ -3,7 +3,6 @@ import { Readable } from "node:stream";
 import { ZipFile } from "yazl";
 import { NextResponse } from "next/server";
 import { prepareZipForExport, type PreparedZipArchive } from "@/lib/archive/zip";
-import { createGradeWorkbook } from "@/lib/export/grades";
 import {
   assignmentArchiveDirectory,
   assignmentArchiveFilename,
@@ -73,8 +72,6 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 
     const rootDirectory = assignmentArchiveDirectory(assignment.title);
     zip.addEmptyDirectory(rootDirectory);
-    const gradeWorkbook = await createGradeWorkbook(students, submissions);
-    zip.addBuffer(Buffer.from(gradeWorkbook), `${rootDirectory}/成绩.xlsx`, { compress: false });
 
     for (const student of students) {
       const directory = studentArchiveDirectory(student.student_number, student.name);
