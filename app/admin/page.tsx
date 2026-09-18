@@ -18,8 +18,7 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-5 border-b border-slate-200 pb-6">
         <div>
-          <p className="text-sm font-medium text-indigo-700">管理员后台</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-900">作业管理</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">作业管理</h1>
           <p className="mt-2 text-sm text-slate-600">创建、查看和维护当前课程作业。</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
