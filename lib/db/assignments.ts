@@ -23,6 +23,11 @@ export async function findAssignment(id: string) {
   return rows[0] ?? null;
 }
 
+export async function findAssignmentByTitle(title: string) {
+  const { rows } = await query<Assignment>("select * from assignments where title = $1", [title]);
+  return rows[0] ?? null;
+}
+
 export async function createAssignment(input: AssignmentInput, createdBy: string) {
   const { rows } = await query<Assignment>(
     `insert into assignments (title, description, published_at, deadline, created_by)

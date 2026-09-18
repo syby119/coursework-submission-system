@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import {
   createAssignment,
   deleteAssignment,
+  findAssignmentByTitle,
   updateAssignment,
 } from "@/lib/db/assignments";
 import { parseShanghaiDateTime } from "@/lib/time";
@@ -18,6 +19,15 @@ function textField(formData: FormData, field: string, maxLength: number) {
 
 function redirectWithMessage(path: string, key: "error" | "success", message: string): never {
   redirect(`${path}?${key}=${encodeURIComponent(message)}`);
+}
+
+function isDuplicateTitleError(error: unknown) {
+  return typeof error === "object"
+    && error !== null
+    && "code" in error
+    && error.code === "23505"
+    && "constraint" in error
+    && error.constraint === "assignments_title_unique";
 }
 
 function assignmentValues(formData: FormData) {
@@ -39,11 +49,17 @@ export async function createAssignmentAction(formData: FormData) {
   const profile = await requireAdmin();
   const parsed = assignmentValues(formData);
   if ("error" in parsed) redirectWithMessage("/admin", "error", parsed.error ?? "作业信息无效。");
+  if (await findAssignmentByTitle(parsed.values.title)) {
+    redirectWithMessage("/admin", "error", "该标题的作业已存在，创建失败。");
+  }
 
   try {
     await createAssignment(parsed.values, profile.id);
   } catch (error) {
     console.error("Assignment creation failed", error);
+    if (isDuplicateTitleError(error)) {
+      redirectWithMessage("/admin", "error", "该标题的作业已存在，创建失败。");
+    }
     redirectWithMessage("/admin", "error", "作业创建失败，请稍后重试。");
   }
   revalidatePath("/");

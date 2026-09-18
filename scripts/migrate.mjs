@@ -19,7 +19,7 @@ async function migrate() {
       )
     `);
     const files = (await readdir(migrationDirectory))
-      .filter((file) => /^\d+_[-a-z0-9]+\.sql$/i.test(file))
+      .filter((file) => /^\d+_[-_a-z0-9]+\.sql$/i.test(file))
       .sort();
     const { rows } = await client.query("select filename from schema_migrations");
     const applied = new Set(rows.map((row) => row.filename));
