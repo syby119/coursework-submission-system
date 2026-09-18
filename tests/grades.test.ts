@@ -50,6 +50,6 @@ describe("grade workbook", () => {
     expect(sheet?.getCell("D1").value).toBe("作业二");
     expect(sheet?.getCell("C2").value).toBe(88.5);
     expect(sheet?.getCell("D2").value).toBe(0);
-    expect(sheet?.getCell("E2").value).toBe(88.5);
+    expect(sheet?.getCell("E2").value).toBeNull();
   });
 });

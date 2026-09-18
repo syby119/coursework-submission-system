@@ -42,7 +42,7 @@ export async function createGradeSummaryWorkbook(assignments: Assignment[], stud
   );
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("成绩汇总");
-  const headers = ["学号", "姓名", ...assignments.map((assignment) => assignment.title), "总分"];
+  const headers = ["学号", "姓名", ...assignments.map((assignment) => assignment.title)];
 
   worksheet.columns = headers.map((header, index) => ({
     header,
@@ -54,7 +54,7 @@ export async function createGradeSummaryWorkbook(assignments: Assignment[], stud
 
   for (const student of students) {
     const scores = assignments.map((assignment) => scoreValue(submissionsByAssignmentAndStudent.get(`${assignment.id}:${student.id}`)));
-    worksheet.addRow([student.student_number, student.name, ...scores, scores.reduce((total, score) => total + score, 0)]);
+    worksheet.addRow([student.student_number, student.name, ...scores]);
   }
 
   return workbook.xlsx.writeBuffer();

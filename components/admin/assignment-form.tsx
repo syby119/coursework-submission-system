@@ -5,7 +5,9 @@ import type { Assignment } from "@/types/database";
 export function AssignmentForm({ assignment }: { assignment?: Assignment }) {
   const action = assignment ? updateAssignmentAction.bind(null, assignment.id) : createAssignmentAction;
   const defaultPublished = assignment ? formatDateTimeLocal(assignment.published_at) : formatDateTimeLocal(new Date().toISOString());
-  const defaultDeadline = assignment ? formatDateTimeLocal(assignment.deadline) : "";
+  const defaultDeadline = assignment
+    ? formatDateTimeLocal(assignment.deadline)
+    : formatDateTimeLocal(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString());
 
   return (
     <form action={action} className="grid gap-4">
