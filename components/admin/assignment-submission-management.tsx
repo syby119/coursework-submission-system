@@ -15,12 +15,13 @@ export function AssignmentSubmissionManagement({
 
   return (
     <section className="py-7 sm:py-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold text-slate-900">提交情况</h2>
           <p className="mt-1 text-sm text-slate-600">以全部学生账号为名单基准。</p>
+          <p className="mt-3 text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           <a
             href={`/api/admin/assignments/${assignment.id}/export`}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
@@ -33,7 +34,6 @@ export function AssignmentSubmissionManagement({
           >
             导出成绩（Excel）
           </a>
-          <p className="text-sm font-medium text-slate-700">已提交：{submitted}　未提交：{total - submitted}　总人数：{total}</p>
         </div>
       </div>
       <div className="mt-5"><AdminSubmissionTable students={students} submissions={submissions} deadline={assignment.deadline} /></div>
