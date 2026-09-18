@@ -50,6 +50,7 @@ export default async function AdminAssignmentPage({ params, searchParams }: Admi
           提交情况
         </Link>
       </nav>
+      <p className="mt-3 text-xs text-slate-500">所有时间均为北京时间（UTC+8）。</p>
       {messages.success ? <p className="mt-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{messages.success}</p> : null}
       {messages.error && !editOpen ? <p className="mt-5 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{messages.error}</p> : null}
       {tab === "detail" ? <AssignmentOverview assignment={assignment} /> : null}

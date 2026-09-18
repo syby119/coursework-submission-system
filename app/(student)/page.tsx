@@ -15,7 +15,7 @@ export default async function StudentHomePage() {
       <div className="mb-7">
         <p className="text-sm font-medium text-indigo-700">学生主页</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">我的作业</h1>
-        <p className="mt-2 text-sm text-slate-600">作业时间统一按北京时间（Asia/Shanghai）显示。</p>
+        <p className="mt-2 text-sm text-slate-600">所有时间均按北京时间（UTC+8）显示。</p>
       </div>
       <AssignmentList assignments={assignments} submissions={submissions} />
     </main>

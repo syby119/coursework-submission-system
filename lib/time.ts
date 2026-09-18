@@ -11,7 +11,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
 });
 
 export function formatDateTime(isoDate: string) {
-  return `${dateTimeFormatter.format(new Date(isoDate))}（北京时间）`;
+  return dateTimeFormatter.format(new Date(isoDate));
 }
 
 export function formatDateTimeLocal(isoDate: string) {

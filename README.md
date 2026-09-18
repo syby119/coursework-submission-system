@@ -287,6 +287,14 @@ set +a
 
 ## 验证
 
+提交或部署前，可一次执行全部检查：
+
+```bash
+pnpm verify
+```
+
+它会依次运行类型检查、测试、lint 与 production build；任一步失败后会停止。也可以分别执行：
+
 ```bash
 pnpm typecheck
 pnpm lint

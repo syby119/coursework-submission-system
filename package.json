@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "verify": "pnpm typecheck && pnpm test && pnpm lint && pnpm build",
     "db:migrate": "node scripts/migrate.mjs",
     "admin:create": "node scripts/admin-create.mjs",
     "students:import": "node scripts/students-import.mjs",
