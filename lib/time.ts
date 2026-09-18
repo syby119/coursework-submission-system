@@ -1,17 +1,17 @@
+import { DEFAULT_LOCALE, type Locale } from "./i18n";
+
 const DISPLAY_TIME_ZONE = "Asia/Shanghai";
 
-const dateTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
-  timeZone: DISPLAY_TIME_ZONE,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-});
-
-export function formatDateTime(isoDate: string) {
-  return dateTimeFormatter.format(new Date(isoDate));
+export function formatDateTime(isoDate: string, locale: Locale = DEFAULT_LOCALE) {
+  return new Intl.DateTimeFormat(locale === "en" ? "en-GB" : "zh-CN", {
+    timeZone: DISPLAY_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(isoDate));
 }
 
 export function formatDateTimeLocal(isoDate: string) {

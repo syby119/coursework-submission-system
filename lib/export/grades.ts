@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { formatDateTime, isLateSubmission } from "../time";
+import { DEFAULT_LOCALE, t, type Locale } from "../i18n";
 import type { Assignment, Submission, User } from "../../types/database";
 
 function scoreValue(submission: Submission | undefined) {
@@ -7,17 +8,17 @@ function scoreValue(submission: Submission | undefined) {
   return Number.isFinite(score) ? score : 0;
 }
 
-export async function createGradeWorkbook(students: User[], submissions: Submission[], deadline: string) {
+export async function createGradeWorkbook(students: User[], submissions: Submission[], deadline: string, locale: Locale = DEFAULT_LOCALE) {
   const submissionsByStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("成绩");
+  const worksheet = workbook.addWorksheet(t(locale, "archiveGrades"));
 
   worksheet.columns = [
-    { header: "学号", key: "studentNumber", width: 18 },
-    { header: "姓名", key: "name", width: 18 },
-    { header: "提交状态", key: "status", width: 12 },
-    { header: "最后提交时间（北京时间）", key: "submittedAt", width: 30 },
-    { header: "分数", key: "score", width: 12 },
+    { header: t(locale, "studentNumber"), key: "studentNumber", width: 18 },
+    { header: t(locale, "student"), key: "name", width: 18 },
+    { header: t(locale, "status"), key: "status", width: 12 },
+    { header: t(locale, "lastSubmittedTimezone"), key: "submittedAt", width: 30 },
+    { header: t(locale, "score"), key: "score", width: 12 },
   ];
   worksheet.getRow(1).font = { bold: true };
   worksheet.views = [{ state: "frozen", ySplit: 1 }];
@@ -27,8 +28,8 @@ export async function createGradeWorkbook(students: User[], submissions: Submiss
     worksheet.addRow({
       studentNumber: student.student_number,
       name: student.name,
-      status: submission ? isLateSubmission(submission.submitted_at, deadline) ? "补交" : "已提交" : "未提交",
-      submittedAt: submission ? formatDateTime(submission.submitted_at) : "",
+      status: submission ? isLateSubmission(submission.submitted_at, deadline) ? t(locale, "late") : t(locale, "submitted") : t(locale, "notSubmitted"),
+      submittedAt: submission ? formatDateTime(submission.submitted_at, locale) : "",
       score: scoreValue(submission),
     });
   }
@@ -36,13 +37,13 @@ export async function createGradeWorkbook(students: User[], submissions: Submiss
   return workbook.xlsx.writeBuffer();
 }
 
-export async function createGradeSummaryWorkbook(assignments: Assignment[], students: User[], submissions: Submission[]) {
+export async function createGradeSummaryWorkbook(assignments: Assignment[], students: User[], submissions: Submission[], locale: Locale = DEFAULT_LOCALE) {
   const submissionsByAssignmentAndStudent = new Map(
     submissions.map((submission) => [`${submission.assignment_id}:${submission.student_id}`, submission]),
   );
   const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet("成绩汇总");
-  const headers = ["学号", "姓名", ...assignments.map((assignment) => assignment.title)];
+  const worksheet = workbook.addWorksheet(t(locale, "archiveGradeSummary"));
+  const headers = [t(locale, "studentNumber"), t(locale, "student"), ...assignments.map((assignment) => assignment.title)];
 
   worksheet.columns = headers.map((header, index) => ({
     header,

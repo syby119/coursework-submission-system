@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AssignmentForm } from "@/components/admin/assignment-form";
+import { t, type Locale } from "@/lib/i18n";
 import type { Assignment } from "@/types/database";
 
 type AssignmentDialogProps = {
@@ -9,6 +10,7 @@ type AssignmentDialogProps = {
   error?: string;
   errorPath?: string;
   successPath?: string;
+  locale: Locale;
 };
 
 export function AssignmentDialog({
@@ -18,14 +20,15 @@ export function AssignmentDialog({
   error,
   errorPath,
   successPath,
+  locale,
 }: AssignmentDialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assignment-dialog-title">
-      <Link href={closeHref} className="absolute inset-0 bg-slate-950/40" aria-label={`关闭${title}弹窗`} />
+      <Link href={closeHref} className="absolute inset-0 bg-slate-950/40" aria-label={t(locale, "closeDialog", { title })} />
       <section className="relative z-10 flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
           <h2 id="assignment-dialog-title" className="text-lg font-semibold text-slate-900">{title}</h2>
-          <Link href={closeHref} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={`关闭${title}弹窗`}>
+          <Link href={closeHref} className="rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900" aria-label={t(locale, "closeDialog", { title })}>
             <span aria-hidden="true">×</span>
           </Link>
         </div>
@@ -36,6 +39,7 @@ export function AssignmentDialog({
             cancelHref={closeHref}
             errorPath={errorPath}
             successPath={successPath}
+            locale={locale}
           />
         </div>
       </section>

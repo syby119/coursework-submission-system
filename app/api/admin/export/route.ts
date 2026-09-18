@@ -1,6 +1,6 @@
 import { Readable } from "node:stream";
 import { ZipFile } from "yazl";
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import {
   allAssignmentsArchiveDirectory,
   allAssignmentsArchiveFilename,
@@ -12,14 +12,16 @@ import { listAssignmentSubmissions, listStudents } from "@/lib/db/submissions";
 import { addAssignmentFilesToZip, EXPORT_ZIP_COMPRESSION_LEVEL } from "@/lib/export/assignment-files";
 import { createGradeSummaryWorkbook } from "@/lib/export/grades";
 import type { Assignment, Submission } from "@/types/database";
+import { LOCALE_COOKIE, localeFromValue, t, type Locale } from "@/lib/i18n";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function assignmentDirectories(assignments: Assignment[]) {
+function assignmentDirectories(assignments: Assignment[], locale: Locale) {
   const baseNames = assignments.map((assignment) => {
-    const directory = assignmentArchiveDirectory(assignment.title);
-    return directory === "成绩汇总.xlsx" ? "成绩汇总.xlsx-作业" : directory;
+    const directory = assignmentArchiveDirectory(assignment.title, locale);
+    const gradeSummaryFilename = `${t(locale, "archiveGradeSummary")}.xlsx`;
+    return directory === gradeSummaryFilename ? `${gradeSummaryFilename}-${t(locale, "archiveAssignmentFallback")}` : directory;
   });
   const nameCounts = new Map<string, number>();
   for (const name of baseNames) nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
@@ -31,7 +33,8 @@ function assignmentDirectories(assignments: Assignment[]) {
   }));
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const locale = localeFromValue(request.cookies.get(LOCALE_COOKIE)?.value);
   const user = await getCurrentUser();
   if (!user || user.role !== "admin") return new NextResponse(null, { status: 404 });
 
@@ -45,20 +48,21 @@ export async function GET() {
     for (const [assignmentId, submissions] of submissionGroups) submissionsByAssignment.set(assignmentId, submissions);
 
     const zip = new ZipFile();
-    const rootDirectory = allAssignmentsArchiveDirectory;
+    const rootDirectory = allAssignmentsArchiveDirectory(locale);
     zip.addEmptyDirectory(rootDirectory);
     const gradeWorkbook = await createGradeSummaryWorkbook(
       assignments,
       students,
       submissionGroups.flatMap(([, submissions]) => submissions),
+      locale,
     );
-    zip.addBuffer(Buffer.from(gradeWorkbook), `${rootDirectory}/成绩汇总.xlsx`, {
+    zip.addBuffer(Buffer.from(gradeWorkbook), `${rootDirectory}/${t(locale, "archiveGradeSummary")}.xlsx`, {
       compressionLevel: EXPORT_ZIP_COMPRESSION_LEVEL,
     });
 
     const closeFunctions: Array<() => void> = [];
     try {
-      const directories = assignmentDirectories(assignments);
+      const directories = assignmentDirectories(assignments, locale);
       for (const assignment of assignments) {
         const directory = directories.get(assignment.id);
         if (!directory) throw new Error(`Missing archive directory for assignment: ${assignment.id}`);
@@ -67,6 +71,7 @@ export async function GET() {
           `${rootDirectory}/${directory}`,
           students,
           submissionsByAssignment.get(assignment.id) ?? [],
+          locale,
         ));
       }
     } catch (error) {
@@ -91,7 +96,7 @@ export async function GET() {
     return new NextResponse(Readable.toWeb(zip.outputStream as unknown as Readable) as ReadableStream, {
       headers: {
         "Content-Type": "application/zip",
-        "Content-Disposition": `attachment; filename="all-assignments.zip"; filename*=UTF-8''${encodeURIComponent(allAssignmentsArchiveFilename)}`,
+        "Content-Disposition": `attachment; filename="all-assignments.zip"; filename*=UTF-8''${encodeURIComponent(allAssignmentsArchiveFilename(locale))}`,
         "Cache-Control": "private, no-store",
       },
     });

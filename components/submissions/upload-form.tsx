@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { MAX_FILE_SIZE, validateSubmissionFile } from "@/lib/validation/submission";
 import { useRouter } from "next/navigation";
+import { t, type Locale } from "@/lib/i18n";
 
-export function UploadForm({ assignmentId, disabled }: { assignmentId: string; disabled: boolean }) {
+export function UploadForm({ assignmentId, disabled, locale }: { assignmentId: string; disabled: boolean; locale: Locale }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [selectedFileName, setSelectedFileName] = useState("");
   const router = useRouter();
+  const fileInputId = useId();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -16,10 +19,10 @@ export function UploadForm({ assignmentId, disabled }: { assignmentId: string; d
     const formData = new FormData(form);
     const file = formData.get("file");
     if (!(file instanceof File) || file.size === 0) {
-      setError("请选择要提交的文件。");
+      setError(t(locale, "selectSubmissionFile"));
       return;
     }
-    const validation = validateSubmissionFile(file.name, file.size);
+    const validation = validateSubmissionFile(file.name, file.size, locale);
     if (!validation.valid) {
       setError(validation.error);
       return;
@@ -27,39 +30,59 @@ export function UploadForm({ assignmentId, disabled }: { assignmentId: string; d
 
     startTransition(async () => {
       setError("");
-      setMessage("正在上传文件…");
+      setMessage(t(locale, "uploading"));
       try {
         const response = await fetch(`/api/assignments/${assignmentId}/submission`, {
           method: "POST",
           body: formData,
           credentials: "same-origin",
         });
-        const result = await response.json().catch(() => ({ error: "上传服务返回了无效响应。" })) as { success?: boolean; error?: string };
+        const result = await response.json().catch(() => ({ error: t(locale, "invalidUploadResponse") })) as { success?: boolean; error?: string };
         if (!response.ok || !result.success) {
           setMessage("");
-          setError(result.error ?? "文件上传失败，请稍后重试。");
+          setError(result.error ?? t(locale, "uploadFailed"));
           return;
         }
         form.reset();
+        setSelectedFileName("");
         setError("");
-        setMessage("提交成功，页面状态已更新。");
+        setMessage(t(locale, "uploadSuccess"));
         router.refresh();
       } catch (uploadError) {
         console.error("Submission upload request failed", uploadError);
         setMessage("");
-        setError("上传请求未能到达应用。请确认 pnpm dev 正在运行，且 Nginx 已成功代理到 127.0.0.1:3000。");
+        setError(t(locale, "uploadNetworkFailed"));
       }
     });
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <input name="file" type="file" accept=".zip,application/zip,application/x-zip-compressed" disabled={disabled || pending} className="block w-full rounded-lg border border-slate-300 bg-white text-sm file:mr-4 file:border-0 file:bg-indigo-50 file:px-4 file:py-2.5 file:font-medium file:text-indigo-700" />
-      <p className="text-xs text-slate-500">仅支持 ZIP 压缩包，最大 {MAX_FILE_SIZE / 1024 / 1024} MB。</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          id={fileInputId}
+          name="file"
+          type="file"
+          accept=".zip,application/zip,application/x-zip-compressed"
+          disabled={disabled || pending}
+          onChange={(event) => setSelectedFileName(event.target.files?.[0]?.name ?? "")}
+          className="sr-only"
+        />
+        <label
+          htmlFor={fileInputId}
+          className={`cursor-pointer rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-medium text-indigo-700 transition hover:bg-indigo-100 ${disabled || pending ? "pointer-events-none cursor-not-allowed opacity-50" : ""}`}
+        >
+          {t(locale, "chooseFile")}
+        </label>
+        <span className={`max-w-full truncate text-sm ${selectedFileName ? "text-slate-700" : "text-slate-500"}`} title={selectedFileName || undefined}>
+          {selectedFileName || t(locale, "noFileSelected")}
+        </span>
+      </div>
+      <p className="text-xs text-slate-500">{t(locale, "zipLimit", { size: MAX_FILE_SIZE / 1024 / 1024 })}</p>
       {error ? <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
       {message ? <p className="rounded-md bg-blue-50 px-3 py-2 text-sm text-blue-700">{message}</p> : null}
       <button type="submit" disabled={disabled || pending} className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">
-        {pending ? "处理中…" : "提交作业"}
+        {pending ? t(locale, "processing") : t(locale, "submitAssignment")}
       </button>
     </form>
   );

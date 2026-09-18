@@ -2,16 +2,17 @@
 
 import { useActionState } from "react";
 import { changePasswordAction, type ChangePasswordState } from "@/app/actions/auth";
+import { t, type Locale } from "@/lib/i18n";
 
 const initialState: ChangePasswordState = {};
 
-export function ChangePasswordForm() {
+export function ChangePasswordForm({ locale }: { locale: Locale }) {
   const [state, formAction, pending] = useActionState(changePasswordAction, initialState);
 
   return (
     <form action={formAction} className="space-y-5">
       <label className="block text-sm font-medium text-slate-700">
-        当前密码
+        {t(locale, "currentPassword")}
         <input
           className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 transition focus:ring-2"
           name="current_password"
@@ -21,7 +22,7 @@ export function ChangePasswordForm() {
         />
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        新密码
+        {t(locale, "newPassword")}
         <input
           className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 transition focus:ring-2"
           name="new_password"
@@ -31,7 +32,7 @@ export function ChangePasswordForm() {
         />
       </label>
       <label className="block text-sm font-medium text-slate-700">
-        确认新密码
+        {t(locale, "confirmNewPassword")}
         <input
           className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2.5 outline-none ring-indigo-600 transition focus:ring-2"
           name="new_password_confirmation"
@@ -46,7 +47,7 @@ export function ChangePasswordForm() {
         className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         disabled={pending}
       >
-        {pending ? "正在修改…" : "修改密码"}
+        {pending ? t(locale, "changingPassword") : t(locale, "updatePassword")}
       </button>
     </form>
   );

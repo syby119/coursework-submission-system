@@ -2,6 +2,7 @@ import { stat } from "node:fs/promises";
 import { ZipFile } from "yazl";
 import { prepareZipForExport, type PreparedZipArchive } from "@/lib/archive/zip";
 import { studentArchiveDirectory } from "@/lib/archive/paths";
+import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n";
 import { resolveStoredPath } from "@/lib/storage/local";
 import type { Submission, User } from "@/types/database";
 
@@ -16,6 +17,7 @@ export async function addAssignmentFilesToZip(
   assignmentDirectory: string,
   students: User[],
   submissions: Submission[],
+  locale: Locale = DEFAULT_LOCALE,
 ) {
   const archivesByStudent = new Map<string, ExportedArchive>();
   try {
@@ -37,7 +39,7 @@ export async function addAssignmentFilesToZip(
 
   zip.addEmptyDirectory(assignmentDirectory);
   for (const student of students) {
-    const directory = studentArchiveDirectory(student.student_number, student.name);
+    const directory = studentArchiveDirectory(student.student_number, student.name, locale);
     const studentDirectory = `${assignmentDirectory}/${directory}`;
     zip.addEmptyDirectory(studentDirectory);
 

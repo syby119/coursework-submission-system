@@ -12,6 +12,8 @@ import {
 import { updateSubmissionScore } from "@/lib/db/submissions";
 import { parseShanghaiDateTime } from "@/lib/time";
 import { removeStoredFile } from "@/lib/storage/local";
+import { t, type Locale } from "@/lib/i18n";
+import { getLocale } from "@/lib/i18n-server";
 
 function textField(formData: FormData, field: string, maxLength: number) {
   const value = String(formData.get(field) ?? "").trim();
@@ -34,31 +36,32 @@ function isDuplicateTitleError(error: unknown) {
     && error.constraint === "assignments_title_unique";
 }
 
-function duplicateTitleMessage(title: string, action: "创建" | "保存") {
-  return `${action}失败：作业标题“${title}”已存在。请修改标题后重试。`;
+function duplicateTitleMessage(locale: Locale, title: string, action: string) {
+  return t(locale, "assignmentTitleDuplicate", { action, title });
 }
 
-function assignmentValues(formData: FormData) {
+function assignmentValues(formData: FormData, locale: Locale) {
   const title = textField(formData, "title", 200);
   const description = textField(formData, "description", 10000);
   const publishedAt = parseShanghaiDateTime(String(formData.get("published_at") ?? ""));
   const deadline = parseShanghaiDateTime(String(formData.get("deadline") ?? ""));
 
-  if (!title) return { error: "请填写不超过 200 个字符的作业标题。" };
-  if (!publishedAt || !deadline) return { error: "请填写有效的发布时间和截止时间。" };
+  if (!title) return { error: t(locale, "assignmentTitleRequired") };
+  if (!publishedAt || !deadline) return { error: t(locale, "assignmentTimeRequired") };
   if (new Date(deadline) <= new Date(publishedAt)) {
-    return { error: "截止时间必须晚于发布时间。" };
+    return { error: t(locale, "deadlineAfterPublished") };
   }
 
   return { values: { title, description, published_at: publishedAt, deadline } };
 }
 
 export async function createAssignmentAction(errorPath: string, successPath: string, formData: FormData) {
+  const locale = await getLocale();
   const profile = await requireAdmin();
-  const parsed = assignmentValues(formData);
-  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? "作业信息无效。");
+  const parsed = assignmentValues(formData, locale);
+  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? t(locale, "assignmentDetailsInvalid"));
   if (await findAssignmentByTitle(parsed.values.title)) {
-    redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "创建"));
+    redirectWithMessage(errorPath, "error", duplicateTitleMessage(locale, parsed.values.title, t(locale, "create")));
   }
 
   try {
@@ -66,13 +69,13 @@ export async function createAssignmentAction(errorPath: string, successPath: str
   } catch (error) {
     console.error("Assignment creation failed", error);
     if (isDuplicateTitleError(error)) {
-      redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "创建"));
+      redirectWithMessage(errorPath, "error", duplicateTitleMessage(locale, parsed.values.title, t(locale, "create")));
     }
-    redirectWithMessage(errorPath, "error", "作业创建失败，请稍后重试。");
+    redirectWithMessage(errorPath, "error", t(locale, "assignmentCreateFailed"));
   }
   revalidatePath("/");
   revalidatePath("/admin");
-  redirectWithMessage(successPath, "success", "作业已创建。");
+  redirectWithMessage(successPath, "success", t(locale, "assignmentCreated"));
 }
 
 export async function updateAssignmentAction(
@@ -81,9 +84,10 @@ export async function updateAssignmentAction(
   successPath: string,
   formData: FormData,
 ) {
+  const locale = await getLocale();
   await requireAdmin();
-  const parsed = assignmentValues(formData);
-  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? "作业信息无效。");
+  const parsed = assignmentValues(formData, locale);
+  if ("error" in parsed) redirectWithMessage(errorPath, "error", parsed.error ?? t(locale, "assignmentDetailsInvalid"));
 
   let assignment;
   try {
@@ -91,28 +95,29 @@ export async function updateAssignmentAction(
   } catch (error) {
     console.error("Assignment update failed", error);
     if (isDuplicateTitleError(error)) {
-      redirectWithMessage(errorPath, "error", duplicateTitleMessage(parsed.values.title, "保存"));
+      redirectWithMessage(errorPath, "error", duplicateTitleMessage(locale, parsed.values.title, t(locale, "saveChanges")));
     }
-    redirectWithMessage(errorPath, "error", "作业更新失败，请稍后重试。");
+    redirectWithMessage(errorPath, "error", t(locale, "assignmentUpdateFailed"));
   }
-  if (!assignment) redirectWithMessage(errorPath, "error", "作业不存在。");
+  if (!assignment) redirectWithMessage(errorPath, "error", t(locale, "assignmentMissing"));
   revalidatePath("/");
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/admin");
   revalidatePath(`/admin/assignments/${assignmentId}`);
-  redirectWithMessage(successPath, "success", "作业已更新。");
+  redirectWithMessage(successPath, "success", t(locale, "assignmentUpdated"));
 }
 
 export async function deleteAssignmentAction(assignmentId: string) {
+  const locale = await getLocale();
   await requireAdmin();
   let result;
   try {
     result = await deleteAssignment(assignmentId);
   } catch (error) {
     console.error("Assignment deletion failed", error);
-    redirectWithMessage("/admin", "error", "作业删除失败，请稍后重试。");
+    redirectWithMessage("/admin", "error", t(locale, "assignmentDeleteFailed"));
   }
-  if (!result.deleted) redirectWithMessage("/admin", "error", "作业不存在。");
+  if (!result.deleted) redirectWithMessage("/admin", "error", t(locale, "assignmentMissing"));
   for (const storagePath of result.paths) {
     removeStoredFile(storagePath).catch((error: unknown) => {
       console.error("Could not remove deleted assignment file", error);
@@ -121,20 +126,21 @@ export async function deleteAssignmentAction(assignmentId: string) {
 
   revalidatePath("/");
   revalidatePath("/admin");
-  redirectWithMessage("/admin", "success", "作业已删除。");
+  redirectWithMessage("/admin", "success", t(locale, "assignmentDeleted"));
 }
 
 export async function updateSubmissionScoreAction(assignmentId: string, submissionId: string, formData: FormData) {
+  const locale = await getLocale();
   await requireAdmin();
   const pagePath = `/admin/assignments/${assignmentId}`;
   const basePath = `${pagePath}?tab=submissions`;
   const score = String(formData.get("score") ?? "").trim();
   if (!/^(?:0|[1-9]\d{0,5})(?:\.\d{1,2})?$/.test(score)) {
-    redirectWithMessage(basePath, "error", "分数必须是 0 到 999999.99 之间、最多保留两位小数的数字。 ");
+    redirectWithMessage(basePath, "error", t(locale, "scoreInvalid"));
   }
 
   const submission = await updateSubmissionScore(assignmentId, submissionId, score);
-  if (!submission) redirectWithMessage(basePath, "error", "未找到对应的学生提交。 ");
+  if (!submission) redirectWithMessage(basePath, "error", t(locale, "submissionMissing"));
   revalidatePath(pagePath);
-  redirectWithMessage(basePath, "success", "分数已保存。");
+  redirectWithMessage(basePath, "success", t(locale, "scoreSaved"));
 }

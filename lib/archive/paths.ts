@@ -17,23 +17,29 @@ export function archivePathSegment(value: string, fallback: string) {
   return sanitized;
 }
 
-export function assignmentArchiveFilename(title: string) {
-  return `${assignmentArchiveDirectory(title)}.zip`;
+export function assignmentArchiveFilename(title: string, locale: Locale = DEFAULT_LOCALE) {
+  return `${assignmentArchiveDirectory(title, locale)}.zip`;
 }
 
-export function assignmentGradeFilename(title: string) {
-  return `${assignmentArchiveDirectory(title)}-成绩.xlsx`;
+export function assignmentGradeFilename(title: string, locale: Locale = DEFAULT_LOCALE) {
+  return `${assignmentArchiveDirectory(title, locale)}-${t(locale, "archiveGrades")}.xlsx`;
 }
 
-export const allAssignmentsArchiveDirectory = "全部作业和成绩";
-export const allAssignmentsArchiveFilename = `${allAssignmentsArchiveDirectory}.zip`;
-
-export function assignmentArchiveDirectory(title: string) {
-  return archivePathSegment(title, "作业");
+export function allAssignmentsArchiveDirectory(locale: Locale = DEFAULT_LOCALE) {
+  return t(locale, "archiveAllAssignmentsAndGrades");
 }
 
-export function studentArchiveDirectory(studentNumber: string, studentName: string) {
-  const number = archivePathSegment(studentNumber, "未知学号");
-  const name = archivePathSegment(studentName, "未命名学生");
+export function allAssignmentsArchiveFilename(locale: Locale = DEFAULT_LOCALE) {
+  return `${allAssignmentsArchiveDirectory(locale)}.zip`;
+}
+
+export function assignmentArchiveDirectory(title: string, locale: Locale = DEFAULT_LOCALE) {
+  return archivePathSegment(title, t(locale, "archiveAssignmentFallback"));
+}
+
+export function studentArchiveDirectory(studentNumber: string, studentName: string, locale: Locale = DEFAULT_LOCALE) {
+  const number = archivePathSegment(studentNumber, t(locale, "archiveUnknownStudentNumber"));
+  const name = archivePathSegment(studentName, t(locale, "archiveUnnamedStudent"));
   return `${number}_${name}`;
 }
+import { DEFAULT_LOCALE, t, type Locale } from "../i18n";
