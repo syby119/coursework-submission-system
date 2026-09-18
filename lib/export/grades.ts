@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { formatDateTime } from "../time";
+import { formatDateTime, isLateSubmission } from "../time";
 import type { Assignment, Submission, User } from "../../types/database";
 
 function scoreValue(submission: Submission | undefined) {
@@ -7,7 +7,7 @@ function scoreValue(submission: Submission | undefined) {
   return Number.isFinite(score) ? score : 0;
 }
 
-export async function createGradeWorkbook(students: User[], submissions: Submission[]) {
+export async function createGradeWorkbook(students: User[], submissions: Submission[], deadline: string) {
   const submissionsByStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("成绩");
@@ -27,7 +27,7 @@ export async function createGradeWorkbook(students: User[], submissions: Submiss
     worksheet.addRow({
       studentNumber: student.student_number,
       name: student.name,
-      status: submission ? "已提交" : "未提交",
+      status: submission ? isLateSubmission(submission.submitted_at, deadline) ? "补交" : "已提交" : "未提交",
       submittedAt: submission ? formatDateTime(submission.submitted_at) : "",
       score: scoreValue(submission),
     });

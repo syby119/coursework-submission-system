@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     ]);
     if (!assignment) return new NextResponse(null, { status: 404 });
 
-    const workbook = await createGradeWorkbook(students, submissions);
+    const workbook = await createGradeWorkbook(students, submissions, assignment.deadline);
     const filename = assignmentGradeFilename(assignment.title);
     return new NextResponse(Buffer.from(workbook), {
       headers: {

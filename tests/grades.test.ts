@@ -29,12 +29,13 @@ const assignments: Assignment[] = [
 
 describe("grade workbook", () => {
   it("includes every student and exports ungraded scores as zero", async () => {
-    const buffer = await createGradeWorkbook(students, submissions);
+    const buffer = await createGradeWorkbook(students, submissions, "2026-09-17T00:00:00.000Z");
     const workbook = new ExcelJS.Workbook();
     await workbook.xlsx.load(buffer);
     const sheet = workbook.getWorksheet("成绩");
 
     expect(sheet?.getCell("A2").value).toBe("20260001");
+    expect(sheet?.getCell("C2").value).toBe("补交");
     expect(sheet?.getCell("E2").value).toBe(88.5);
     expect(sheet?.getCell("A3").value).toBe("20260002");
     expect(sheet?.getCell("E3").value).toBe(0);

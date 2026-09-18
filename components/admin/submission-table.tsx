@@ -1,9 +1,9 @@
 import { DownloadButton } from "@/components/submissions/download-button";
 import { updateSubmissionScoreAction } from "@/app/actions/assignments";
-import { formatDateTime } from "@/lib/time";
+import { formatDateTime, isLateSubmission } from "@/lib/time";
 import type { Submission, User } from "@/types/database";
 
-export function AdminSubmissionTable({ students, submissions }: { students: User[]; submissions: Submission[] }) {
+export function AdminSubmissionTable({ students, submissions, deadline }: { students: User[]; submissions: Submission[]; deadline: string }) {
   const byStudent = new Map(submissions.map((submission) => [submission.student_id, submission]));
   return (
     <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -21,11 +21,12 @@ export function AdminSubmissionTable({ students, submissions }: { students: User
         <tbody className="divide-y divide-slate-100">
           {students.map((student) => {
             const submission = byStudent.get(student.id);
+            const late = submission ? isLateSubmission(submission.submitted_at, deadline) : false;
             return (
               <tr key={student.id}>
                 <td className="whitespace-nowrap px-4 py-3 font-medium text-slate-900">{student.name}</td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-600">{student.student_number || "—"}</td>
-                <td className="whitespace-nowrap px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${submission ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{submission ? "已提交" : "未提交"}</span></td>
+                <td className="whitespace-nowrap px-4 py-3"><span className={`rounded-full px-2 py-1 text-xs font-medium ${late ? "bg-amber-50 text-amber-700" : submission ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{late ? "补交" : submission ? "已提交" : "未提交"}</span></td>
                 <td className="whitespace-nowrap px-4 py-3 text-slate-600">{submission ? formatDateTime(submission.submitted_at) : "—"}</td>
                 <td className="min-w-44 px-4 py-3 text-slate-600">{submission ? <><p className="mb-1 truncate" title={submission.original_filename}>{submission.original_filename}</p><DownloadButton submissionId={submission.id} /></> : "—"}</td>
                 <td className="min-w-40 px-4 py-3">

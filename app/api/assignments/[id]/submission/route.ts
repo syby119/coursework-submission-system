@@ -22,7 +22,6 @@ import {
   isUuid,
   validateSubmissionFile,
 } from "@/lib/validation/submission";
-import { isPastDeadline } from "@/lib/time";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,7 +127,6 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
   }
   const assignment = await findPublishedAssignment(assignmentId);
   if (!assignment) return jsonError(404, "作业不存在或尚未发布。 ");
-  if (isPastDeadline(assignment.deadline)) return jsonError(403, "已超过截止时间，无法提交。 ");
 
   let tempPath: string | null = null;
   let storagePath: string | null = null;
@@ -149,8 +147,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ id
     }
 
     const currentAssignment = await findPublishedAssignment(assignmentId);
-    if (!currentAssignment || isPastDeadline(currentAssignment.deadline)) {
-      throw new UploadError(403, "已超过截止时间，无法提交。 ");
+    if (!currentAssignment) {
+      throw new UploadError(404, "作业不存在或尚未发布。 ");
     }
 
     storagePath = createSubmissionStoragePath(assignmentId, user.id, validation.extension);

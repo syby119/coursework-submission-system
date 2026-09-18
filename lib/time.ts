@@ -38,3 +38,7 @@ export function parseShanghaiDateTime(value: string) {
 export function isPastDeadline(deadline: string) {
   return new Date(deadline).getTime() <= Date.now();
 }
+
+export function isLateSubmission(submittedAt: string, deadline: string) {
+  return new Date(submittedAt).getTime() > new Date(deadline).getTime();
+}
