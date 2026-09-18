@@ -9,7 +9,7 @@ export async function listPublishedAssignments() {
 }
 
 export async function listAllAssignments() {
-  const { rows } = await query<Assignment>("select * from assignments order by deadline desc");
+  const { rows } = await query<Assignment>("select * from assignments order by deadline asc");
   return rows;
 }
 
