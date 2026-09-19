@@ -74,6 +74,7 @@ async function streamSingleFile(request: NextRequest, tempPath: string, locale: 
     try {
       parser = Busboy({
         headers: { "content-type": contentType },
+        defParamCharset: "utf8",
         limits: { files: 1, fields: 0, fileSize: getConfig().maxUploadSize },
       });
     } catch {
